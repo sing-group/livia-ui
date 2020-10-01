@@ -1,0 +1,15 @@
+# IDEs
+.idea
+
+# Build
+build
+dist
+*.egg-info
+*.pyc
+__pycache__
+build.sh
+dist.sh
+
+# General
+bak
+*.bak
