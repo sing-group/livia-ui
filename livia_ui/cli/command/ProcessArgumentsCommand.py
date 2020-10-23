@@ -1,6 +1,6 @@
 from argparse import FileType, Namespace
 from functools import reduce
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 from livia.input.FileFrameInput import FileFrameInput
 from livia.output.FileFrameOutput import FileFrameOutput
@@ -87,8 +87,8 @@ class ProcessArgumentsCommand(ArgumentsCommand):
 
         return analyzer
 
-    def _extract_args_for_analyzer(self, args: Namespace, analyzer: FrameAnalyzerMetadata) -> \
-        (Optional[Namespace], Optional[int]):
+    def _extract_args_for_analyzer(self, args: Namespace, analyzer: FrameAnalyzerMetadata) ->\
+        Tuple[Optional[Namespace], Optional[int]]:
         def arg(arg_id):
             return f"analyzer_{analyzer.id}_{arg_id}".replace("-", "_")
 
