@@ -8,7 +8,8 @@ from livia.process.analyzer.FrameAnalyzer import FrameAnalyzer
 from livia.process.analyzer.NoChangeFrameAnalyzer import NoChangeFrameAnalyzer
 from livia.process.analyzer.listener.FrameAnalyzerChangeEvent import FrameAnalyzerChangeEvent
 from livia.process.analyzer.listener.FrameAnalyzerChangeListener import FrameAnalyzerChangeListener
-from livia.process.listener import IOChangeEvent, build_listener
+from livia.process.listener.IOChangeEvent import IOChangeEvent
+from livia.process.listener import build_listener
 from livia.process.listener.EventListeners import EventListeners
 from livia.process.listener.IOChangeListener import IOChangeListener
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeEvent import FrameProcessingStatusChangeEvent
@@ -39,6 +40,7 @@ class FrameProcessingStatus:
         analyzer.add_frame_analyzer_change_listener(
             build_listener(FrameAnalyzerChangeListener, analyzer_changed=self._on_analyzer_changed)
         )
+        return analyzer
 
     @property
     def frame_input(self) -> FrameInput:

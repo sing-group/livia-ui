@@ -1,17 +1,36 @@
-from livia.process.listener.EventListeners import EventListeners
+from typing import Tuple
 
+from livia.process.listener.EventListeners import EventListeners
 from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
 from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
 
 
 class DisplayStatus:
-    def __init__(self, fullscreen: bool = False, resizable: bool = True, status_message: str = ""):
+    def __init__(self,
+                 window_size: Tuple[int, int] = (800, 600),
+                 fullscreen: bool = False,
+                 resizable: bool = True,
+                 status_message: str = ""):
+        self._window_size: Tuple[int, int] = window_size
         self._fullscreen: bool = fullscreen
         self._resizable: bool = resizable
         self._status_message: str = status_message
 
         self._listeners: EventListeners[DisplayStatusChangeListener] =\
             EventListeners[DisplayStatusChangeListener]()
+
+    @property
+    def window_size(self) -> Tuple[int, int]:
+        return self._window_size
+
+    @window_size.setter
+    def window_size(self, window_size: Tuple[int, int]):
+        if self._window_size != window_size:
+            self._window_size = window_size
+
+            event = DisplayStatusChangeEvent(self, self._window_size)
+            for listener in self._listeners:
+                listener.window_size_changed(event)
 
     @property
     def fullscreen(self) -> bool:
