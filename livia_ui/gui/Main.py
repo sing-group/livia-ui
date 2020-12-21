@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     window_size = (frame_size[0] + 50, frame_size[1] + 100)
     livia_status = LiviaStatus(FrameProcessingStatus(input_frame),
-                               DisplayStatus(window_size, False, False, "Welcome to LIVIA"),
+                               DisplayStatus(window_size, status_message="Welcome to LIVIA"),
                                ShortcutStatus())
 
     main_window = LiviaWindow(livia_status)

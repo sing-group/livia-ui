@@ -7,6 +7,9 @@ from PyQt5.QtWidgets import QMenuBar, QMenu, QAction
 
 from livia.process.analyzer.FrameByFrameSquareFrameAnalyzer import FrameByFrameSquareFrameAnalyzer
 from livia.process.analyzer.NoChangeFrameAnalyzer import NoChangeFrameAnalyzer
+from livia.process.listener import build_listener
+from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
+from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
 from livia_ui.gui.views.builders.MenuBarBuilder import MenuBarBuilder
 
 if TYPE_CHECKING:
@@ -20,8 +23,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         self._pause_action: QAction = None
         self._resume_action: QAction = None
-        self._start_detection_action: QAction = None
-        self._stop_detection_action: QAction = None
+        self._detect_objects_action: QAction = None
         self._classify_action: QAction = None
         self._fullscreen_action: QAction = None
         self._resizable_action: QAction = None
@@ -46,10 +48,16 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         self._resizable_action.triggered.connect(self._on_toggle_resizable)
         self._fullscreen_action.triggered.connect(self._on_toggle_fullscreen)
+        self._detect_objects_action.triggered.connect(self._on_toggle_detect_objects)
         self._pause_action.triggered.connect(self._on_pause)
         self._resume_action.triggered.connect(self._on_resume)
-        self._start_detection_action.triggered.connect(self._on_start_detection)
-        self._stop_detection_action.triggered.connect(self._on_stop_detection)
+
+        main_window.status.display_status.add_display_status_change_listener(
+            build_listener(DisplayStatusChangeListener,
+                           fullscreen_changed=self._on_fullscreen_changed,
+                           resizable_changed=self._on_resizable_changed,
+                           detect_objects_changed=self._on_detect_objects_changed)
+        )
 
     def _add_video_menu(self, parent, menu_bar):
         self._pause_action = QAction(parent)
@@ -68,18 +76,16 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         menu_bar.addAction(self._video_menu.menuAction())
 
     def _add_detection_menu(self, parent, menu_bar):
-        self._start_detection_action = QAction(parent)
-        self._start_detection_action.setObjectName("_menu_bar__start_detection_action")
-        self._start_detection_action.setText(self._translate("DefaultMenuBarBuilder", "Start Detection"))
-        self._stop_detection_action = QAction(parent)
-        self._stop_detection_action.setObjectName("_menu_bar__stop_detection_action")
-        self._stop_detection_action.setText(self._translate("DefaultMenuBarBuilder", "Stop Detection"))
+        self._detect_objects_action = QAction(parent)
+        self._detect_objects_action.setCheckable(True)
+        self._detect_objects_action.setChecked(self._main_window.status.display_status.detect_objects)
+        self._detect_objects_action.setObjectName("_menu_bar__start_detection_action")
+        self._detect_objects_action.setText(self._translate("DefaultMenuBarBuilder", "Detect objects"))
 
         self._detection_menu = QMenu(menu_bar)
         self._detection_menu.setObjectName("_menu_bar__detection_menu")
         self._detection_menu.setTitle(self._translate("DefaultMenuBarBuilder", "Detection"))
-        self._detection_menu.addAction(self._start_detection_action)
-        self._detection_menu.addAction(self._stop_detection_action)
+        self._detection_menu.addAction(self._detect_objects_action)
 
         menu_bar.addAction(self._detection_menu.menuAction())
 
@@ -98,10 +104,13 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _add_view_menu(self, parent, menu_bar):
         self._fullscreen_action = QAction(parent)
         self._fullscreen_action.setCheckable(True)
+        self._fullscreen_action.setChecked(self._main_window.status.display_status.fullscreen)
         self._fullscreen_action.setObjectName("_menu_bar__fullscreen_action")
         self._fullscreen_action.setText(self._translate("DefaultMenuBarBuilder", "Fullscreen"))
         self._resizable_action = QAction(parent)
         self._resizable_action.setCheckable(True)
+        print(self._main_window.status.display_status.resizable)
+        self._resizable_action.setChecked(self._main_window.status.display_status.resizable)
         self._resizable_action.setObjectName("_menu_bar__resizable_action")
         self._resizable_action.setText(self._translate("DefaultMenuBarBuilder", "Resizable"))
 
@@ -134,10 +143,13 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         menu_bar.addAction(self._configuration_menu.menuAction())
 
     def _on_toggle_resizable(self):
-        self._main_window.status.display_status.resizable = not self._main_window.status.display_status.resizable
+        self._main_window.status.display_status.toggle_resizable()
 
     def _on_toggle_fullscreen(self):
-        self._main_window.status.display_status.fullscreen = not self._main_window.status.display_status.fullscreen
+        self._main_window.status.display_status.toggle_fullscreen()
+
+    def _on_toggle_detect_objects(self):
+        self._main_window.status.display_status.toggle_detect_objects()
 
     def _on_pause(self):
         self._main_window.status.video_stream_status.frame_processor.pause()
@@ -145,9 +157,14 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _on_resume(self):
         self._main_window.status.video_stream_status.frame_processor.resume()
 
-    def _on_start_detection(self):
-        # TODO Change NoChangeFrameAnalyzer for user configured analyzer when setup display is integrated
-        self._main_window.status.video_stream_status.live_frame_analyzer = FrameByFrameSquareFrameAnalyzer()
+    def _on_fullscreen_changed(self, event: DisplayStatusChangeEvent):
+        if self._fullscreen_action.isChecked() != event.value:
+            self._fullscreen_action.setChecked(event.value)
 
-    def _on_stop_detection(self):
-        self._main_window.status.video_stream_status.live_frame_analyzer = NoChangeFrameAnalyzer()
+    def _on_resizable_changed(self, event: DisplayStatusChangeEvent):
+        if self._resizable_action.isChecked() != event.value:
+            self._resizable_action.setChecked(event.value)
+
+    def _on_detect_objects_changed(self, event: DisplayStatusChangeEvent):
+        if self._detect_objects_action.isChecked() != event.value:
+            self._detect_objects_action.setChecked(event.value)

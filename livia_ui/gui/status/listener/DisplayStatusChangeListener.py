@@ -17,3 +17,6 @@ class DisplayStatusChangeListener(EventListener):
 
     def window_size_changed(self, event: DisplayStatusChangeEvent[Tuple[int, int]]):
         pass
+
+    def detect_objects_changed(self, event: DisplayStatusChangeEvent[bool]):
+        pass

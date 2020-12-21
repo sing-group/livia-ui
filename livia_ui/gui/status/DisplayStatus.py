@@ -10,11 +10,13 @@ class DisplayStatus:
                  window_size: Tuple[int, int] = (800, 600),
                  fullscreen: bool = False,
                  resizable: bool = True,
-                 status_message: str = ""):
+                 status_message: str = "",
+                 detect_objects: bool = False):
         self._window_size: Tuple[int, int] = window_size
         self._fullscreen: bool = fullscreen
         self._resizable: bool = resizable
         self._status_message: str = status_message
+        self._detect_objects: bool = detect_objects
 
         self._listeners: EventListeners[DisplayStatusChangeListener] =\
             EventListeners[DisplayStatusChangeListener]()
@@ -45,6 +47,9 @@ class DisplayStatus:
             for listener in self._listeners:
                 listener.fullscreen_changed(event)
 
+    def toggle_fullscreen(self):
+        self.fullscreen = not self.fullscreen
+
     @property
     def resizable(self) -> bool:
         return self._resizable
@@ -58,6 +63,9 @@ class DisplayStatus:
             for listener in self._listeners:
                 listener.resizable_changed(event)
 
+    def toggle_resizable(self):
+        self.resizable = not self.resizable
+
     @property
     def status_message(self) -> str:
         return self._status_message
@@ -70,6 +78,22 @@ class DisplayStatus:
             event = DisplayStatusChangeEvent(self, self._status_message)
             for listener in self._listeners:
                 listener.status_message_changed(event)
+
+    @property
+    def detect_objects(self) -> str:
+        return self._detect_objects
+
+    @detect_objects.setter
+    def detect_objects(self, detect_objects: str):
+        if self._detect_objects != detect_objects:
+            self._detect_objects = detect_objects
+
+            event = DisplayStatusChangeEvent(self, self._detect_objects)
+            for listener in self._listeners:
+                listener.detect_objects_changed(event)
+
+    def toggle_detect_objects(self):
+        self.detect_objects = not self.detect_objects
 
     def add_display_status_change_listener(self, listener: DisplayStatusChangeListener):
         self._listeners.append(listener)

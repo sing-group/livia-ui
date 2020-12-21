@@ -11,7 +11,12 @@ import numpy as np
 
 from livia.output.CallbackFrameOutput import CallbackFrameOutput
 from livia.output.CompositeFrameOutput import CompositeFrameOutput
+from livia.process.analyzer.FrameByFrameSquareFrameAnalyzer import FrameByFrameSquareFrameAnalyzer
+from livia.process.analyzer.NoChangeFrameAnalyzer import NoChangeFrameAnalyzer
+from livia.process.listener import build_listener
 from livia_ui.gui import LIVIA_GUI_LOGGER
+from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
+from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
 from livia_ui.gui.views.builders.VideoPanelBuilder import VideoPanelBuilder
 
 if TYPE_CHECKING:
@@ -34,12 +39,18 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         self._video_label.setText("")
         self._video_label.setObjectName("_video_panel__video_label")
 
+        self._update_detect_objects(self._main_window.status.display_status.detect_objects)
+
         main_window.status.video_stream_status.frame_output = CompositeFrameOutput(
             CallbackFrameOutput(
                 show_frame_callback=self._on_show_frame,
                 close_callback=self._on_close
             ),
             main_window.status.video_stream_status.frame_output
+        )
+
+        main_window.status.display_status.add_display_status_change_listener(
+            build_listener(DisplayStatusChangeListener, detect_objects_changed=self._on_detect_objects_changed)
         )
 
     def _on_show_frame(self, frame: ndarray):
@@ -56,6 +67,17 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
 
     def _on_close(self):
         pass
+
+    def _on_detect_objects_changed(self, event: DisplayStatusChangeEvent):
+        self._update_detect_objects(event.value)
+
+    def _update_detect_objects(self, active: bool):
+        if active:
+            # TODO Change FrameByFrameSquareFrameAnalyzer for user configured analyzer when setup display is integrated
+            self._main_window.status.video_stream_status.live_frame_analyzer = FrameByFrameSquareFrameAnalyzer()
+        else:
+            self._main_window.status.video_stream_status.live_frame_analyzer = NoChangeFrameAnalyzer()
+
 
     @staticmethod
     def _resize_image(image: ndarray, bounds: QSize) -> ndarray:
