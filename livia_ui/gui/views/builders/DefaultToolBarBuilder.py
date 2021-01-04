@@ -37,7 +37,7 @@ class DefaultToolBarBuilder(ToolBarBuilder):
         self._threshold_spin: QDoubleSpinBox = None
         self._threshold_label: QLabel = None
 
-    def build(self, main_window: LiviaWindow, tool_bar: QWidget):
+    def build(self, livia_window: LiviaWindow, tool_bar: QWidget):
         layout = tool_bar.layout()
 
         layout.addWidget(self._add_widget_progress_bar(tool_bar), BorderLayout.West)
@@ -46,18 +46,18 @@ class DefaultToolBarBuilder(ToolBarBuilder):
 
         self._threshold_label.setFocus()
 
-        main_window.status.video_stream_status.frame_processor.add_process_change_listener(
+        livia_window.status.video_stream_status.frame_processor.add_process_change_listener(
             build_listener(ProcessChangeListener,
                            started=self._on_stream_started,
                            resumed=self._on_stream_resumed)
         )
 
-        main_window.status.video_stream_status.frame_output = CompositeFrameOutput(
+        livia_window.status.video_stream_status.frame_output = CompositeFrameOutput(
             CallbackFrameOutput(
                 show_frame_callback=self._on_show_frame,
                 close_callback=self._on_close
             ),
-            main_window.status.video_stream_status.frame_output
+            livia_window.status.video_stream_status.frame_output
         )
 
     def _update_fps(self):

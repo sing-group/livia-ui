@@ -1,25 +1,36 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Optional, Tuple, Set, Union, TYPE_CHECKING
+
+from livia_ui.gui.shortcuts.ShortcutAction import ShortcutAction
 
 if TYPE_CHECKING:
     from livia_ui.gui.status.ShortcutStatus import ShortcutStatus
 
 
 class ShortcutStatusChangeEvent:
-    def __init__(self, status: ShortcutStatus, new: str, old: str):
-        self._status: ShortcutStatus = status
-        self._new: str = new
-        self._old: str = old
+    def __init__(self,
+                 configuration: ShortcutStatus,
+                 action: ShortcutAction,
+                 old_keys: Optional[Union[Tuple[str, ...], Set[str]]],
+                 new_keys: Optional[Union[Tuple[str, ...], Set[str]]]):
+        self._configuration: ShortcutStatus = configuration
+        self._action: ShortcutAction = action
+        self._old_keys: Optional[Tuple[str, ...]] = old_keys if isinstance(old_keys, tuple) else tuple(old_keys)
+        self._new_keys: Optional[Tuple[str, ...]] = new_keys if isinstance(new_keys, tuple) else tuple(new_keys)
 
     @property
-    def status(self) -> ShortcutStatus:
-        return self._status
+    def configuration(self) -> ShortcutStatus:
+        return self._configuration
 
     @property
-    def new(self) -> str:
-        return self._new
+    def action(self) -> ShortcutAction:
+        return self._action
 
     @property
-    def old(self) -> str:
-        return self._old
+    def old_keys(self) -> Optional[Tuple[str, ...]]:
+        return self._old_keys
+
+    @property
+    def new_keys(self) -> Optional[Tuple[str, ...]]:
+        return self._new_keys

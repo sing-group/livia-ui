@@ -9,6 +9,7 @@ dist
 __pycache__
 build.sh
 dist.sh
+clean.sh
 
 # General
 bak

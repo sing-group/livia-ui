@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 class DefaultStatusBarBuilder(StatusBarBuilder):
     def __init__(self):
         self._translate = QtCore.QCoreApplication.translate
-        self._main_window: LiviaWindow = None
+        self._livia_window: LiviaWindow = None
 
         self._status_label: QLabel = None
 
@@ -32,15 +32,15 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
         self._record_settings_button: QToolButton = None
         self._time_recording: QTimeEdit = None
 
-    def build(self, main_window: LiviaWindow, status_bar: QStatusBar):
-        self._main_window = main_window
+    def build(self, livia_window: LiviaWindow, status_bar: QStatusBar):
+        self._livia_window = livia_window
 
         self._build_status_label()
 
         status_bar.addWidget(self._status_label)
         status_bar.addPermanentWidget(self._build_recording_panel())
 
-        main_window.status.video_stream_status.frame_processor.add_process_change_listener(
+        livia_window.status.video_stream_status.frame_processor.add_process_change_listener(
             build_listener(ProcessChangeListener,
                            started=self._on_video_stream_started,
                            paused=self._on_video_stream_paused,
@@ -50,24 +50,24 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
                            )
         )
 
-        main_window.status.display_status.add_display_status_change_listener(
+        livia_window.status.display_status.add_display_status_change_listener(
             build_listener(DisplayStatusChangeListener, status_message_changed=self._on_status_message_change)
         )
 
     def _on_video_stream_started(self, event: ProcessChangeEvent):
-        self._main_window.status.display_status.status_message = "Video started"
+        self._livia_window.status.display_status.status_message = "Video started"
 
     def _on_video_stream_paused(self, event: ProcessChangeEvent):
-        self._main_window.status.display_status.status_message = "Video paused"
+        self._livia_window.status.display_status.status_message = "Video paused"
 
     def _on_video_stream_resumed(self, event: ProcessChangeEvent):
-        self._main_window.status.display_status.status_message = "Video resumed"
+        self._livia_window.status.display_status.status_message = "Video resumed"
 
     def _on_video_stream_stopped(self, event: ProcessChangeEvent):
-        self._main_window.status.display_status.status_message = "Video stopped"
+        self._livia_window.status.display_status.status_message = "Video stopped"
 
     def _on_video_stream_finished(self, event: ProcessChangeEvent):
-        self._main_window.status.display_status.status_message = "Video finished"
+        self._livia_window.status.display_status.status_message = "Video finished"
 
     def _on_status_message_change(self, event: DisplayStatusChangeEvent[str]):
         self._status_label.setText(self._translate("DisplayStatusChangeEvent", event.value))

@@ -14,7 +14,6 @@ from livia_ui.gui.status.ShortcutStatus import ShortcutStatus
 LIVIA_GUI_LOGGER.setLevel(logging.INFO)
 LIVIA_GUI_LOGGER.addHandler(logging.StreamHandler())
 
-
 if __name__ == '__main__':
     app = QApplication([LiviaWindow])
 
@@ -33,5 +32,5 @@ if __name__ == '__main__':
     main_window.move(app.desktop().screen().rect().center() - main_window.rect().center())  # Centers window
 
     main_window.show()
-    app.exit(app.exec_())
 
+    app.exit(app.exec_())

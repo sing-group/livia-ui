@@ -3,11 +3,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 import cv2
-from PyQt5.QtCore import QRect, Qt, QSize
+import numpy as np
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QWidget, QLabel, QSizePolicy
 from numpy import ndarray
-import numpy as np
 
 from livia.output.CallbackFrameOutput import CallbackFrameOutput
 from livia.output.CompositeFrameOutput import CompositeFrameOutput
@@ -25,11 +25,11 @@ if TYPE_CHECKING:
 
 class DefaultVideoPanelBuilder(VideoPanelBuilder):
     def __init__(self):
-        self._main_window: LiviaWindow = None
+        self._livia_window: LiviaWindow = None
         self._video_label: QLabel = None
 
-    def build(self, main_window: LiviaWindow, panel: QWidget):
-        self._main_window = main_window
+    def build(self, livia_window: LiviaWindow, panel: QWidget):
+        self._livia_window = livia_window
         self._video_label = QLabel(panel)
         self._video_label.setMinimumSize(800, 600)
         self._video_label.setContentsMargins(0, 0, 0, 0)
@@ -39,17 +39,17 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         self._video_label.setText("")
         self._video_label.setObjectName("_video_panel__video_label")
 
-        self._update_detect_objects(self._main_window.status.display_status.detect_objects)
+        self._update_detect_objects(self._livia_window.status.display_status.detect_objects)
 
-        main_window.status.video_stream_status.frame_output = CompositeFrameOutput(
+        livia_window.status.video_stream_status.frame_output = CompositeFrameOutput(
             CallbackFrameOutput(
                 show_frame_callback=self._on_show_frame,
                 close_callback=self._on_close
             ),
-            main_window.status.video_stream_status.frame_output
+            livia_window.status.video_stream_status.frame_output
         )
 
-        main_window.status.display_status.add_display_status_change_listener(
+        livia_window.status.display_status.add_display_status_change_listener(
             build_listener(DisplayStatusChangeListener, detect_objects_changed=self._on_detect_objects_changed)
         )
 
@@ -74,10 +74,9 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
     def _update_detect_objects(self, active: bool):
         if active:
             # TODO Change FrameByFrameSquareFrameAnalyzer for user configured analyzer when setup display is integrated
-            self._main_window.status.video_stream_status.live_frame_analyzer = FrameByFrameSquareFrameAnalyzer()
+            self._livia_window.status.video_stream_status.live_frame_analyzer = FrameByFrameSquareFrameAnalyzer()
         else:
-            self._main_window.status.video_stream_status.live_frame_analyzer = NoChangeFrameAnalyzer()
-
+            self._livia_window.status.video_stream_status.live_frame_analyzer = NoChangeFrameAnalyzer()
 
     @staticmethod
     def _resize_image(image: ndarray, bounds: QSize) -> ndarray:
