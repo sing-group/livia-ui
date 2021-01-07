@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QMenuBar, QMenu, QAction
+from PyQt5.QtWidgets import QMenuBar, QMenu, QAction, QFileDialog
 
+from livia.input.FileFrameInput import FileFrameInput
 from livia.process.listener import build_listener
 from livia.process.listener.ProcessChangeEvent import ProcessChangeEvent
 from livia.process.listener.ProcessChangeListener import ProcessChangeListener
@@ -20,9 +23,11 @@ if TYPE_CHECKING:
 
 class DefaultMenuBarBuilder(MenuBarBuilder):
     def __init__(self):
-        self._translate = QtCore.QCoreApplication.translate
         self._livia_window: LiviaWindow = None
+        self._translate = QtCore.QCoreApplication.translate
+        self._current_path: str = str(Path.home())
 
+        self._open_action: QAction = None
         self._pause_action: QAction = None
         self._resume_action: QAction = None
         self._detect_objects_action: QAction = None
@@ -42,12 +47,14 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def build(self, livia_window: LiviaWindow, menu_bar: QMenuBar):
         self._livia_window = livia_window
 
-        self._add_video_menu(menu_bar, menu_bar)
+        self._add_file_menu(livia_window, menu_bar)
+        self._add_video_menu(livia_window, menu_bar)
         self._add_detection_menu(livia_window, menu_bar)
         self._add_classification_menu(livia_window, menu_bar)
         self._add_view_menu(livia_window, menu_bar)
         self._add_configuration_menu(livia_window, menu_bar)
 
+        self._open_action.triggered.connect(self._on_open_file)
         self._resizable_action.triggered.connect(self._on_toggle_resizable)
         self._fullscreen_action.triggered.connect(self._on_toggle_fullscreen)
         self._detect_objects_action.triggered.connect(self._on_toggle_detect_objects)
@@ -70,12 +77,26 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
                            )
         )
 
-        livia_window.shortcuts_manager.add_shortcut(DefaultShortcutAction.TOGGLE_PLAY, "Ctrl+P")
         livia_window.shortcuts_manager.add_action_listener(
             DefaultShortcutAction.TOGGLE_PLAY,
             build_listener(ShortcutTriggerListener, shortcut_triggered=lambda event: self._on_toggle_play()))
+        livia_window.shortcuts_manager.add_action_listener(
+            DefaultShortcutAction.OPEN_FILE,
+            build_listener(ShortcutTriggerListener, shortcut_triggered=lambda event: self._on_open_file()))
 
-    def _add_video_menu(self, parent, menu_bar):
+    def _add_file_menu(self, parent: LiviaWindow, menu_bar: QMenuBar):
+        self._open_action = QAction(parent)
+        self._open_action.setObjectName("_menu_bar__open_action")
+        self._open_action.setText(self._translate("DefaultMenuBarBuilder", "Open file"))
+
+        self._file_menu = QMenu(menu_bar)
+        self._file_menu.setObjectName("_menu_bar__file_menu")
+        self._file_menu.setTitle(self._translate("DefaultMenuBarBuilder", "File"))
+        self._file_menu.addAction(self._open_action)
+
+        menu_bar.addAction(self._file_menu.menuAction())
+
+    def _add_video_menu(self, parent: LiviaWindow, menu_bar: QMenuBar):
         self._play_action = QAction(parent)
         self._play_action.setCheckable(True)
         self._play_action.setChecked(self._livia_window.status.video_stream_status.frame_processor.is_running())
@@ -89,7 +110,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         menu_bar.addAction(self._video_menu.menuAction())
 
-    def _add_detection_menu(self, parent, menu_bar):
+    def _add_detection_menu(self, parent: LiviaWindow, menu_bar: QMenuBar):
         self._detect_objects_action = QAction(parent)
         self._detect_objects_action.setCheckable(True)
         self._detect_objects_action.setChecked(self._livia_window.status.display_status.detect_objects)
@@ -103,7 +124,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         menu_bar.addAction(self._detection_menu.menuAction())
 
-    def _add_classification_menu(self, parent, menu_bar):
+    def _add_classification_menu(self, parent: LiviaWindow, menu_bar: QMenuBar):
         self._classify_action = QAction(parent)
         self._classify_action.setObjectName("_menu_bar__classify_action")
         self._classify_action.setText(self._translate("DefaultMenuBarBuilder", "Classify"))
@@ -115,7 +136,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         menu_bar.addAction(self._classification_menu.menuAction())
 
-    def _add_view_menu(self, parent, menu_bar):
+    def _add_view_menu(self, parent: LiviaWindow, menu_bar: QMenuBar):
         self._fullscreen_action = QAction(parent)
         self._fullscreen_action.setCheckable(True)
         self._fullscreen_action.setChecked(self._livia_window.status.display_status.fullscreen)
@@ -135,7 +156,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         menu_bar.addAction(self._view_menu.menuAction())
 
-    def _add_configuration_menu(self, parent, menu_bar):
+    def _add_configuration_menu(self, parent: LiviaWindow, menu_bar: QMenuBar):
         self._shortcuts_action = QAction(parent)
         self._shortcuts_action.setObjectName("_menu_bar__shortcuts_action")
         self._shortcuts_action.setText(self._translate("DefaultMenuBarBuilder", "Shortcuts"))
@@ -155,6 +176,20 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         menu_bar.addAction(self._configuration_menu.menuAction())
 
+    def _on_open_file(self):
+        file = QFileDialog.getOpenFileName(self._livia_window,
+                                           self._translate("DefaultMenuBarBuilder", "Open file"),
+                                           self._current_path,
+                                           self._translate("DefaultMenuBarBuilder",
+                                                           "Video Files (*.mp4)"))
+
+        if file[0]:
+            self._current_path = os.path.dirname(os.path.realpath(file[0]))
+            if self._livia_window.status.video_stream_status.frame_processor.is_alive():
+                self._livia_window.status.video_stream_status.frame_processor.stop_and_wait()
+            self._livia_window.status.video_stream_status.frame_input = FileFrameInput(file[0])
+            self._livia_window.status.video_stream_status.frame_processor.start()
+
     def _on_toggle_resizable(self):
         self._livia_window.status.display_status.toggle_resizable()
 
@@ -165,10 +200,11 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._livia_window.status.display_status.toggle_detect_objects()
 
     def _on_toggle_play(self):
-        if self._livia_window.status.video_stream_status.frame_processor.is_paused():
-            self._livia_window.status.video_stream_status.frame_processor.resume()
-        else:
-            self._livia_window.status.video_stream_status.frame_processor.pause()
+        if self._livia_window.status.video_stream_status.frame_processor.is_alive():
+            if self._livia_window.status.video_stream_status.frame_processor.is_paused():
+                self._livia_window.status.video_stream_status.frame_processor.resume()
+            else:
+                self._livia_window.status.video_stream_status.frame_processor.pause()
 
     def _on_fullscreen_changed(self, event: DisplayStatusChangeEvent):
         if self._fullscreen_action.isChecked() != event.value:

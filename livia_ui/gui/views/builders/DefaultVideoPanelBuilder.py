@@ -33,10 +33,10 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         self._video_label = QLabel(panel)
         self._video_label.setMinimumSize(800, 600)
         self._video_label.setContentsMargins(0, 0, 0, 0)
-        self._video_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self._video_label.setAlignment(Qt.AlignCenter)
         self._video_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._video_label.setAutoFillBackground(False)
-        self._video_label.setText("")
+        self._video_label.setText("No image")
         self._video_label.setObjectName("_video_panel__video_label")
 
         self._update_detect_objects(self._livia_window.status.display_status.detect_objects)
@@ -64,9 +64,13 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
             image = DefaultVideoPanelBuilder._map_to_qimage(frame)
 
             self._video_label.setPixmap(QPixmap.fromImage(image))
+        else:
+            self._video_label.setPixmap(None)
+            self._video_label.setText("No image")
 
     def _on_close(self):
-        pass
+        self._video_label.setPixmap(None)
+        self._video_label.setText("No image")
 
     def _on_detect_objects_changed(self, event: DisplayStatusChangeEvent):
         self._update_detect_objects(event.value)

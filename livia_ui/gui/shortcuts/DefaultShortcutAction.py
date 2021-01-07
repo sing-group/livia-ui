@@ -4,6 +4,7 @@ from livia_ui.gui.shortcuts.ShortcutAction import ShortcutAction
 
 
 class DefaultShortcutAction(ShortcutAction):
+    OPEN_FILE = 1
     TOGGLE_PLAY = 1001
     TOGGLE_FULLSCREEN = 2001
     TOGGLE_RESIZABLE = 2002
@@ -18,6 +19,7 @@ class DefaultShortcutAction(ShortcutAction):
 
 
 DEFAULT_SHORTCUTS: Dict[ShortcutAction, str] = {
+    DefaultShortcutAction.OPEN_FILE: "Ctrl+O",
     DefaultShortcutAction.TOGGLE_PLAY: "P",
     DefaultShortcutAction.TOGGLE_FULLSCREEN: "F",
     DefaultShortcutAction.TOGGLE_RESIZABLE: "R",
