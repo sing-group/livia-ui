@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import TypeVar, Generic, TYPE_CHECKING, Optional
+from typing import TypeVar, Generic, TYPE_CHECKING, Optional, Tuple
 
 from PyQt5.QtCore import QObject, QThread, QCoreApplication
 from PyQt5.QtWidgets import QWidget, QStatusBar, QToolBar
+
+from livia_ui.gui.shortcuts.ShortcutAction import ShortcutAction
 
 if TYPE_CHECKING:
     from livia_ui.gui.LiviaWindow import LiviaWindow
@@ -38,6 +40,9 @@ class GuiBuilder(QObject, Generic[T]):
 
     def _translate(self, text: str) -> str:
         return QCoreApplication.translate(self.__class__.__name__, text)
+
+    def _get_shortcuts(self, action: ShortcutAction) -> Tuple[str]:
+        return self._livia_window.status.shortcut_status.get_keys(action)
 
     @abstractmethod
     def _build(self):

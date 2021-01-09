@@ -2,11 +2,7 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QResizeEvent
 from PyQt5.QtWidgets import QMainWindow
 
-from livia.process.listener import build_listener
-from livia_ui.gui.shortcuts.ShortcutEventManager import ShortcutEventManager
 from livia_ui.gui.status.LiviaStatus import LiviaStatus
-from livia_ui.gui.status.listener.ShortcutStatusChangeEvent import ShortcutStatusChangeEvent
-from livia_ui.gui.status.listener.ShortcutStatusChangeListener import ShortcutStatusChangeListener
 from livia_ui.gui.views.UiLiviaWindow import UiLiviaWindow
 from livia_ui.gui.views.builders.GuiBuilders import GuiBuilders
 
@@ -20,17 +16,6 @@ class LiviaWindow(QMainWindow, UiLiviaWindow):
         super(LiviaWindow, self).__init__()
 
         self._livia_status = livia_status
-        self._shortcuts_manager = ShortcutEventManager(self)
-
-        for action, keys in self._livia_status.shortcut_status.shortcuts.items():
-            self._shortcuts_manager.add_shortcut(action, set(keys))
-
-        self._livia_status.shortcut_status.add_shortcut_configuration_change_listener(
-            build_listener(ShortcutStatusChangeListener,
-                           shortcut_added=self._on_shortcut_added,
-                           shortcut_modified=self._on_shortcut_modified,
-                           shortcut_removed=self._on_shortcut_removed)
-        )
 
         self.setup_ui(self, gui_builders)
 
@@ -72,19 +57,6 @@ class LiviaWindow(QMainWindow, UiLiviaWindow):
     @status_message.setter
     def status_message(self, message: str) -> None:
         self._livia_status.display_status.status_message = message
-
-    @property
-    def shortcuts_manager(self) -> ShortcutEventManager:
-        return self._shortcuts_manager
-
-    def _on_shortcut_added(self, event: ShortcutStatusChangeEvent):
-        self._shortcuts_manager.add_shortcut(event.action, set(event.new_keys))
-
-    def _on_shortcut_modified(self, event: ShortcutStatusChangeEvent):
-        self._shortcuts_manager.set_shortcut(event.action, set(event.new_keys))
-
-    def _on_shortcut_removed(self, event: ShortcutStatusChangeEvent):
-        self._shortcuts_manager.remove_shortcut(event.action)
 
     def _restart(self) -> None:
         self.exit_code_signal.emit(-1)

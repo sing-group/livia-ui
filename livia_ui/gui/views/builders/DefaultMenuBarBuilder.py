@@ -4,14 +4,13 @@ from pathlib import Path
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMenu, QAction, QFileDialog
 
+from livia.input.DeviceFrameInput import DeviceFrameInput
 from livia.input.FileFrameInput import FileFrameInput
 from livia.input.FrameInput import FrameInput
-from livia.input.DeviceFrameInput import DeviceFrameInput
 from livia.process.listener import build_listener
 from livia.process.listener.ProcessChangeEvent import ProcessChangeEvent
 from livia.process.listener.ProcessChangeListener import ProcessChangeListener
 from livia_ui.gui.shortcuts.DefaultShortcutAction import DefaultShortcutAction
-from livia_ui.gui.shortcuts.listeners.ShortcutTirggerListener import ShortcutTriggerListener
 from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
 from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
 from livia_ui.gui.views.builders.MenuBarBuilder import MenuBarBuilder
@@ -31,19 +30,19 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._camera_dialog: SelectDeviceDialog = None
 
         self._open_file_action: QAction = None
-        self._open_camera_action: QAction = None
+        self._open_device_action: QAction = None
         self._pause_action: QAction = None
         self._resume_action: QAction = None
-        self._detect_objects_action: QAction = None
-        self._classify_action: QAction = None
+        self._toggle_video_analyzer_action: QAction = None
+        self._analyze_image_action: QAction = None
         self._fullscreen_action: QAction = None
         self._resizable_action: QAction = None
-        self._shortcuts_action: QAction = None
-        self._analyzer_action: QAction = None
-        self._display_action: QAction = None
+        self._configure_shortcuts_action: QAction = None
+        self._configure_video_analyzer_action: QAction = None
+        self._configure_image_analyzer_action: QAction = None
 
         self._video_menu: QMenu = None
-        self._detection_menu: QMenu = None
+        self._analysis_menu: QMenu = None
         self._classification_menu: QMenu = None
         self._view_menu: QMenu = None
         self._configuration_menu: QMenu = None
@@ -53,18 +52,17 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         self._add_file_menu()
         self._add_video_menu()
-        self._add_detection_menu()
-        self._add_classification_menu()
+        self._add_analysis_menu()
         self._add_view_menu()
         self._add_configuration_menu()
 
         self._camera_dialog.accepted.connect(self._on_accept_camera)
 
         self._open_file_action.triggered.connect(self._on_open_file)
-        self._open_camera_action.triggered.connect(self._on_open_camera)
+        self._open_device_action.triggered.connect(self._on_open_camera)
         self._resizable_action.triggered.connect(self._on_toggle_resizable)
         self._fullscreen_action.triggered.connect(self._on_toggle_fullscreen)
-        self._detect_objects_action.triggered.connect(self._on_toggle_detect_objects)
+        self._toggle_video_analyzer_action.triggered.connect(self._on_toggle_detect_objects)
         self._play_action.triggered.connect(self._on_toggle_play)
 
         self.check_play_action_signal.connect(self._on_check_play_action_signal)
@@ -88,35 +86,29 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
                            resumed=self._on_video_resumed
                            )
         )
-        self._livia_window.shortcuts_manager.add_action_listener(
-            DefaultShortcutAction.TOGGLE_PLAY,
-            build_listener(ShortcutTriggerListener, shortcut_triggered=lambda event: self._on_toggle_play()))
-        self._livia_window.shortcuts_manager.add_action_listener(
-            DefaultShortcutAction.OPEN_FILE,
-            build_listener(ShortcutTriggerListener, shortcut_triggered=lambda event: self._on_open_file()))
-        self._livia_window.shortcuts_manager.add_action_listener(
-            DefaultShortcutAction.OPEN_DEVICE,
-            build_listener(ShortcutTriggerListener, shortcut_triggered=lambda event: self._on_open_camera()))
 
     def _add_file_menu(self):
         self._open_file_action = QAction(self._livia_window)
+        self._open_file_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.OPEN_FILE))
         self._open_file_action.setObjectName("_menu_bar__open_action")
         self._open_file_action.setText(self._translate("Open file"))
 
-        self._open_camera_action = QAction(self._livia_window)
-        self._open_camera_action.setObjectName("_menu_bar__open_camera")
-        self._open_camera_action.setText(self._translate("Open camera"))
+        self._open_device_action = QAction(self._livia_window)
+        self._open_device_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.OPEN_DEVICE))
+        self._open_device_action.setObjectName("_menu_bar__open_device")
+        self._open_device_action.setText(self._translate("Open device"))
 
         self._file_menu = QMenu(self._parent)
         self._file_menu.setObjectName("_menu_bar__file_menu")
         self._file_menu.setTitle(self._translate("File"))
         self._file_menu.addAction(self._open_file_action)
-        self._file_menu.addAction(self._open_camera_action)
+        self._file_menu.addAction(self._open_device_action)
 
         self._parent.addAction(self._file_menu.menuAction())
 
     def _add_video_menu(self):
         self._play_action = QAction(self._livia_window)
+        self._play_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_PLAY))
         self._play_action.setCheckable(True)
         self._play_action.setChecked(self._livia_window.status.video_stream_status.frame_processor.is_running())
         self._play_action.setObjectName("_menu_bar__play")
@@ -129,39 +121,36 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         self._parent.addAction(self._video_menu.menuAction())
 
-    def _add_detection_menu(self):
-        self._detect_objects_action = QAction(self._livia_window)
-        self._detect_objects_action.setCheckable(True)
-        self._detect_objects_action.setChecked(self._livia_window.status.display_status.detect_objects)
-        self._detect_objects_action.setObjectName("_menu_bar__start_detection_action")
-        self._detect_objects_action.setText(self._translate("Detect objects"))
+    def _add_analysis_menu(self):
+        self._toggle_video_analyzer_action = QAction(self._livia_window)
+        self._toggle_video_analyzer_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_VIDEO_ANALYSIS))
+        self._toggle_video_analyzer_action.setCheckable(True)
+        self._toggle_video_analyzer_action.setChecked(self._livia_window.status.display_status.detect_objects)
+        self._toggle_video_analyzer_action.setObjectName("_menu_bar__toggle_video_analyzer_action")
+        self._toggle_video_analyzer_action.setText(self._translate("Analyze video"))
 
-        self._detection_menu = QMenu(self._parent)
-        self._detection_menu.setObjectName("_menu_bar__detection_menu")
-        self._detection_menu.setTitle(self._translate("Detection"))
-        self._detection_menu.addAction(self._detect_objects_action)
+        self._analyze_image_action = QAction(self._livia_window)
+        self._analyze_image_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.ANALYZE_IMAGE))
+        self._analyze_image_action.setObjectName("_menu_bar__analyze_image_action")
+        self._analyze_image_action.setText(self._translate("Analyze image"))
 
-        self._parent.addAction(self._detection_menu.menuAction())
+        self._analysis_menu = QMenu(self._parent)
+        self._analysis_menu.setObjectName("_menu_bar__analysis_menu")
+        self._analysis_menu.setTitle(self._translate("Analysis"))
+        self._analysis_menu.addAction(self._toggle_video_analyzer_action)
+        self._analysis_menu.addAction(self._analyze_image_action)
 
-    def _add_classification_menu(self):
-        self._classify_action = QAction(self._livia_window)
-        self._classify_action.setObjectName("_menu_bar__classify_action")
-        self._classify_action.setText(self._translate("Classify"))
-
-        self._classification_menu = QMenu(self._parent)
-        self._classification_menu.setObjectName("_menu_bar__classification_menu")
-        self._classification_menu.setTitle(self._translate("Classification"))
-        self._classification_menu.addAction(self._classify_action)
-
-        self._parent.addAction(self._classification_menu.menuAction())
+        self._parent.addAction(self._analysis_menu.menuAction())
 
     def _add_view_menu(self):
         self._fullscreen_action = QAction(self._livia_window)
+        self._fullscreen_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_FULLSCREEN))
         self._fullscreen_action.setCheckable(True)
         self._fullscreen_action.setChecked(self._livia_window.status.display_status.fullscreen)
         self._fullscreen_action.setObjectName("_menu_bar__fullscreen_action")
         self._fullscreen_action.setText(self._translate("Fullscreen"))
         self._resizable_action = QAction(self._livia_window)
+        self._resizable_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_RESIZABLE))
         self._resizable_action.setCheckable(True)
         self._resizable_action.setChecked(self._livia_window.status.display_status.resizable)
         self._resizable_action.setObjectName("_menu_bar__resizable_action")
@@ -176,22 +165,27 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._parent.addAction(self._view_menu.menuAction())
 
     def _add_configuration_menu(self):
-        self._shortcuts_action = QAction(self._livia_window)
-        self._shortcuts_action.setObjectName("_menu_bar__shortcuts_action")
-        self._shortcuts_action.setText(self._translate("Shortcuts"))
-        self._analyzer_action = QAction(self._livia_window)
-        self._analyzer_action.setObjectName("_menu_bar__analyzer_action")
-        self._analyzer_action.setText(self._translate("Analyzer"))
-        self._display_action = QAction(self._livia_window)
-        self._display_action.setObjectName("_self._parent__display_action")
-        self._display_action.setText(self._translate("Display"))
+        self._configure_shortcuts_action = QAction(self._livia_window)
+        self._configure_shortcuts_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.CONFIGURE_SHORTCUTS))
+        self._configure_shortcuts_action.setObjectName("_menu_bar__configure_shortcuts_action")
+        self._configure_shortcuts_action.setText(self._translate("Shortcuts"))
+        self._configure_video_analyzer_action = QAction(self._livia_window)
+        self._configure_video_analyzer_action.setShortcuts(
+            self._get_shortcuts(DefaultShortcutAction.CONFIGURE_VIDEO_ANALYZER))
+        self._configure_video_analyzer_action.setObjectName("_menu_bar__configure_video_analyzer_action")
+        self._configure_video_analyzer_action.setText(self._translate("Video analyzer"))
+        self._configure_image_analyzer_action = QAction(self._livia_window)
+        self._configure_image_analyzer_action.setShortcuts(
+            self._get_shortcuts(DefaultShortcutAction.CONFIGURE_IMAGE_ANALYZER))
+        self._configure_image_analyzer_action.setObjectName("_menu_bar__configure_image_analyzer_action")
+        self._configure_image_analyzer_action.setText(self._translate("Image analyzer"))
 
         self._configuration_menu = QMenu(self._parent)
         self._configuration_menu.setObjectName("_menu_bar__configuration_menu")
         self._configuration_menu.setTitle(self._translate("Configuration"))
-        self._configuration_menu.addAction(self._analyzer_action)
-        self._configuration_menu.addAction(self._shortcuts_action)
-        self._configuration_menu.addAction(self._display_action)
+        self._configuration_menu.addAction(self._configure_video_analyzer_action)
+        self._configuration_menu.addAction(self._configure_image_analyzer_action)
+        self._configuration_menu.addAction(self._configure_shortcuts_action)
 
         self._parent.addAction(self._configuration_menu.menuAction())
 
@@ -209,7 +203,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
     @pyqtSlot(bool)
     def _on_check_detect_objects_action_signal(self, checked: bool):
-        self._detect_objects_action.setChecked(checked)
+        self._toggle_video_analyzer_action.setChecked(checked)
 
     def _on_open_file(self):
         file = QFileDialog.getOpenFileName(self._livia_window,
@@ -252,7 +246,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
             self.check_resizable_action_signal.emit(event.value)
 
     def _on_detect_objects_changed(self, event: DisplayStatusChangeEvent):
-        if self._detect_objects_action.isChecked() != event.value:
+        if self._toggle_video_analyzer_action.isChecked() != event.value:
             self.check_detect_objects_action_signal.emit(event.value)
 
     def _on_video_started(self, event: ProcessChangeEvent):

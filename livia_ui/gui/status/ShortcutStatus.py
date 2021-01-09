@@ -22,6 +22,9 @@ class ShortcutStatus:
     def shortcuts(self) -> Dict[ShortcutAction, Tuple[str]]:
         return {action: tuple(keys) for action, keys in self._action_keys.items()}
 
+    def get_keys(self, action: ShortcutAction) -> Tuple[str]:
+        return tuple(self._action_keys[action])
+
     def add_action(self, action: ShortcutAction, keys: Union[Set[str], str] = set()):
         if self.has_action(action):
             raise ShortcutActionAlreadyRegisteredError(action)
