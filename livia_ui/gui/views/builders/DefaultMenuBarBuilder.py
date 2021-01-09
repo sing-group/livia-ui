@@ -5,6 +5,8 @@ from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMenu, QAction, QFileDialog
 
 from livia.input.FileFrameInput import FileFrameInput
+from livia.input.FrameInput import FrameInput
+from livia.input.DeviceFrameInput import DeviceFrameInput
 from livia.process.listener import build_listener
 from livia.process.listener.ProcessChangeEvent import ProcessChangeEvent
 from livia.process.listener.ProcessChangeListener import ProcessChangeListener
@@ -13,6 +15,7 @@ from livia_ui.gui.shortcuts.listeners.ShortcutTirggerListener import ShortcutTri
 from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
 from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
 from livia_ui.gui.views.builders.MenuBarBuilder import MenuBarBuilder
+from livia_ui.gui.views.utils.SelectDeviceDialog import SelectDeviceDialog
 
 
 class DefaultMenuBarBuilder(MenuBarBuilder):
@@ -25,7 +28,10 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         super().__init__()
         self._current_path: str = str(Path.home())
 
-        self._open_action: QAction = None
+        self._camera_dialog: SelectDeviceDialog = None
+
+        self._open_file_action: QAction = None
+        self._open_camera_action: QAction = None
         self._pause_action: QAction = None
         self._resume_action: QAction = None
         self._detect_objects_action: QAction = None
@@ -43,6 +49,8 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._configuration_menu: QMenu = None
 
     def _build(self):
+        self._camera_dialog = SelectDeviceDialog(self._livia_window)
+
         self._add_file_menu()
         self._add_video_menu()
         self._add_detection_menu()
@@ -50,7 +58,10 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._add_view_menu()
         self._add_configuration_menu()
 
-        self._open_action.triggered.connect(self._on_open_file)
+        self._camera_dialog.accepted.connect(self._on_accept_camera)
+
+        self._open_file_action.triggered.connect(self._on_open_file)
+        self._open_camera_action.triggered.connect(self._on_open_camera)
         self._resizable_action.triggered.connect(self._on_toggle_resizable)
         self._fullscreen_action.triggered.connect(self._on_toggle_fullscreen)
         self._detect_objects_action.triggered.connect(self._on_toggle_detect_objects)
@@ -83,16 +94,24 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._livia_window.shortcuts_manager.add_action_listener(
             DefaultShortcutAction.OPEN_FILE,
             build_listener(ShortcutTriggerListener, shortcut_triggered=lambda event: self._on_open_file()))
+        self._livia_window.shortcuts_manager.add_action_listener(
+            DefaultShortcutAction.OPEN_DEVICE,
+            build_listener(ShortcutTriggerListener, shortcut_triggered=lambda event: self._on_open_camera()))
 
     def _add_file_menu(self):
-        self._open_action = QAction(self._livia_window)
-        self._open_action.setObjectName("_menu_bar__open_action")
-        self._open_action.setText(self._translate("Open file"))
+        self._open_file_action = QAction(self._livia_window)
+        self._open_file_action.setObjectName("_menu_bar__open_action")
+        self._open_file_action.setText(self._translate("Open file"))
+
+        self._open_camera_action = QAction(self._livia_window)
+        self._open_camera_action.setObjectName("_menu_bar__open_camera")
+        self._open_camera_action.setText(self._translate("Open camera"))
 
         self._file_menu = QMenu(self._parent)
         self._file_menu.setObjectName("_menu_bar__file_menu")
         self._file_menu.setTitle(self._translate("File"))
-        self._file_menu.addAction(self._open_action)
+        self._file_menu.addAction(self._open_file_action)
+        self._file_menu.addAction(self._open_camera_action)
 
         self._parent.addAction(self._file_menu.menuAction())
 
@@ -176,19 +195,6 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         self._parent.addAction(self._configuration_menu.menuAction())
 
-    def _on_open_file(self):
-        file = QFileDialog.getOpenFileName(self._livia_window,
-                                           self._translate("Open file"),
-                                           self._current_path,
-                                           self._translate("Video Files (*.mp4)"))
-
-        if file[0]:
-            self._current_path = os.path.dirname(os.path.realpath(file[0]))
-            if self._livia_window.status.video_stream_status.frame_processor.is_alive():
-                self._livia_window.status.video_stream_status.frame_processor.stop_and_wait()
-            self._livia_window.status.video_stream_status.frame_input = FileFrameInput(file[0])
-            self._livia_window.status.video_stream_status.frame_processor.start()
-
     @pyqtSlot(bool)
     def _on_check_play_action_signal(self, checked: bool):
         self._play_action.setChecked(checked)
@@ -204,6 +210,22 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     @pyqtSlot(bool)
     def _on_check_detect_objects_action_signal(self, checked: bool):
         self._detect_objects_action.setChecked(checked)
+
+    def _on_open_file(self):
+        file = QFileDialog.getOpenFileName(self._livia_window,
+                                           self._translate("Open file"),
+                                           self._current_path,
+                                           self._translate("Video Files (*.mp4)"))
+
+        if file[0]:
+            self._current_path = os.path.dirname(os.path.realpath(file[0]))
+            self.__change_frame_input(FileFrameInput(file[0]))
+
+    def _on_open_camera(self):
+        self._camera_dialog.open()
+
+    def _on_accept_camera(self):
+        self.__change_frame_input(DeviceFrameInput(self._camera_dialog.get_device()))
 
     def _on_toggle_resizable(self):
         self._livia_window.status.display_status.toggle_resizable()
@@ -252,3 +274,13 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _on_video_resumed(self, event: ProcessChangeEvent):
         if not self._play_action.isChecked():
             self.check_play_action_signal.emit(True)
+
+    def __change_frame_input(self, frame_input: FrameInput):
+        status = self._livia_window.status.video_stream_status
+
+        if status.frame_processor.is_alive():
+            status.frame_processor.stop_and_wait()
+
+        status.frame_input = frame_input
+
+        status.frame_processor.start()

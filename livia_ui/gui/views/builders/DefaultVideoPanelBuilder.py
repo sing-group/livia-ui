@@ -14,6 +14,7 @@ from livia_ui.gui import LIVIA_GUI_LOGGER
 from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
 from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
 from livia_ui.gui.views.builders.VideoPanelBuilder import VideoPanelBuilder
+from livia_ui.gui.views.utils import convert_image_opencv_to_qt
 
 
 class DefaultVideoPanelBuilder(VideoPanelBuilder):
@@ -64,7 +65,7 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
 
     def _on_show_frame(self, frame: ndarray):
         if frame is not None:
-            image = DefaultVideoPanelBuilder._map_to_qimage(frame)
+            image = convert_image_opencv_to_qt(frame)
             size = self._video_label.size()
             image = image.scaled(size.width(), size.height(), Qt.KeepAspectRatio)
 
@@ -85,18 +86,3 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         else:
             self._livia_window.status.video_stream_status.live_frame_analyzer = NoChangeFrameAnalyzer()
 
-    @staticmethod
-    def _map_to_qimage(image: ndarray) -> Optional[QImage]:
-        if image is not None:
-            try:
-                height, width, colors = image.shape
-                bytes_per_line = colors * width
-
-                image = QImage(image.data, width, height, bytes_per_line, QImage.Format_RGB888)
-
-                return image.rgbSwapped()
-            except AttributeError:
-                LIVIA_GUI_LOGGER.error("Unknown frame format")
-                return None
-        else:
-            return None
