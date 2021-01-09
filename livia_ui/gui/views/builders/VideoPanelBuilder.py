@@ -1,15 +1,9 @@
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
-
+from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QWidget
 
-if TYPE_CHECKING:
-    from livia_ui.gui.LiviaWindow import LiviaWindow
+from livia_ui.gui.views.builders.GuiBuilder import GuiBuilder
 
 
-class VideoPanelBuilder(ABC):
-    @abstractmethod
-    def build(self, main_window: LiviaWindow, panel: QWidget):
-        pass
+class VideoPanelBuilder(GuiBuilder[QWidget]):
+    def __init__(self, independent_thread: bool = False, thread_priority: int = QThread.NormalPriority):
+        super().__init__(independent_thread, thread_priority)

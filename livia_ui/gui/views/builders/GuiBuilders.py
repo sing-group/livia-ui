@@ -1,3 +1,5 @@
+from PyQt5.QtWidgets import QWidget
+
 from livia_ui.gui.views.builders.DefaultVideoPanelBuilder import DefaultVideoPanelBuilder
 from livia_ui.gui.views.builders.DefaultMenuBarBuilder import DefaultMenuBarBuilder
 from livia_ui.gui.views.builders.DefaultStatusBarBuilder import DefaultStatusBarBuilder

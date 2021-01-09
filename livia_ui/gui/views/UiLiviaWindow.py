@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PyQt5.QtWidgets import QMenuBar, QWidget, QStatusBar
+from PyQt5.QtWidgets import QMenuBar, QWidget, QStatusBar, QHBoxLayout
 
 from livia_ui.gui.views.builders.GuiBuilders import GuiBuilders
 from livia_ui.gui.views.utils.BorderLayout import BorderLayout
@@ -38,12 +38,15 @@ class UiLiviaWindow(object):
         central_layout.setContentsMargins(0, 0, 0, 0)
 
         self._tool_bar = QWidget(self._central_panel)
+        self._tool_bar.setMinimumHeight(24)
         self._tool_bar.setObjectName("_tool_bar")
         BorderLayout(self._tool_bar)
 
         self._video_panel = QWidget(self._central_panel)
         self._video_panel.setObjectName("_video_panel")
         self._video_panel.setContentsMargins(0, 0, 0, 0)
+        video_panel_layout = QHBoxLayout(self._video_panel)
+        video_panel_layout.setContentsMargins(0, 0, 0, 0)
 
         central_layout.addWidget(self._tool_bar, BorderLayout.North)
         central_layout.addWidget(self._video_panel, BorderLayout.Center)
