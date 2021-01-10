@@ -4,6 +4,7 @@ from livia_ui.gui.shortcuts.ShortcutAction import ShortcutAction
 
 
 class DefaultShortcutAction(ShortcutAction):
+    QUIT = 0
     OPEN_FILE = 1
     OPEN_DEVICE = 2
     TOGGLE_PLAY = 1001
@@ -20,6 +21,7 @@ class DefaultShortcutAction(ShortcutAction):
 
 
 DEFAULT_SHORTCUTS: Dict[ShortcutAction, str] = {
+    DefaultShortcutAction.QUIT: "Ctrl+Q",
     DefaultShortcutAction.OPEN_FILE: "Ctrl+O",
     DefaultShortcutAction.OPEN_DEVICE: "Ctrl+D",
     DefaultShortcutAction.TOGGLE_PLAY: "P",

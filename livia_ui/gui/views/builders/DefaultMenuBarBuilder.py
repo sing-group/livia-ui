@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QMenu, QAction, QFileDialog
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QCoreApplication
+from PyQt5.QtWidgets import QMenu, QAction, QFileDialog, QMessageBox
 
 from livia.input.DeviceFrameInput import DeviceFrameInput
 from livia.input.FileFrameInput import FileFrameInput
@@ -31,6 +31,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         self._open_file_action: QAction = None
         self._open_device_action: QAction = None
+        self._quit_action: QAction = None
         self._pause_action: QAction = None
         self._resume_action: QAction = None
         self._toggle_video_analyzer_action: QAction = None
@@ -57,10 +58,11 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._add_configuration_menu()
 
     def _connect_widgets(self):
-        self._camera_dialog.accepted.connect(self._on_accept_camera)
+        self._camera_dialog.accepted.connect(self._on_accept_device)
 
         self._open_file_action.triggered.connect(self._on_open_file)
-        self._open_device_action.triggered.connect(self._on_open_camera)
+        self._open_device_action.triggered.connect(self._on_open_device)
+        self._quit_action.triggered.connect(self._on_quit)
         self._resizable_action.triggered.connect(self._on_toggle_resizable)
         self._fullscreen_action.triggered.connect(self._on_toggle_fullscreen)
         self._toggle_video_analyzer_action.triggered.connect(self._on_toggle_detect_objects)
@@ -99,19 +101,26 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _add_file_menu(self):
         self._open_file_action = QAction(self._livia_window)
         self._open_file_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.OPEN_FILE))
-        self._open_file_action.setObjectName("_menu_bar__open_action")
+        self._open_file_action.setObjectName("_menu_bar__open_file_action")
         self._open_file_action.setText(self._translate("Open file"))
 
         self._open_device_action = QAction(self._livia_window)
         self._open_device_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.OPEN_DEVICE))
-        self._open_device_action.setObjectName("_menu_bar__open_device")
+        self._open_device_action.setObjectName("_menu_bar__open_device_action")
         self._open_device_action.setText(self._translate("Open device"))
+
+        self._quit_action = QAction(self._livia_window)
+        self._quit_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.QUIT))
+        self._quit_action.setObjectName("_menu_bar__quit_action")
+        self._quit_action.setText(self._translate("Quit"))
 
         self._file_menu = QMenu(self._parent)
         self._file_menu.setObjectName("_menu_bar__file_menu")
         self._file_menu.setTitle(self._translate("File"))
         self._file_menu.addAction(self._open_file_action)
         self._file_menu.addAction(self._open_device_action)
+        self._file_menu.addSeparator()
+        self._file_menu.addAction(self._quit_action)
 
         self._parent.addAction(self._file_menu.menuAction())
 
@@ -230,10 +239,21 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
             self._current_path = os.path.dirname(os.path.realpath(file[0]))
             self.__change_frame_input(FileFrameInput(file[0]))
 
-    def _on_open_camera(self):
+    def _on_open_device(self):
         self._camera_dialog.open()
 
-    def _on_accept_camera(self):
+    def _on_quit(self):
+        message = QMessageBox(self._livia_window)
+        message.setIcon(QMessageBox.Warning)
+
+        message.setWindowTitle("Exit Livia")
+        message.setText("Livia is about to exit. Do you want to continue?")
+        message.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+
+        if message.exec_() == QMessageBox.Ok:
+            QCoreApplication.quit()
+
+    def _on_accept_device(self):
         self.__change_frame_input(DeviceFrameInput(self._camera_dialog.get_device()))
 
     def _on_toggle_resizable(self):
