@@ -18,10 +18,10 @@ from livia_ui.gui.views.utils.SelectDeviceDialog import SelectDeviceDialog
 
 
 class DefaultMenuBarBuilder(MenuBarBuilder):
-    check_play_action_signal: pyqtSignal = pyqtSignal(bool)
-    check_fullscreen_action_signal: pyqtSignal = pyqtSignal(bool)
-    check_resizable_action_signal: pyqtSignal = pyqtSignal(bool)
-    check_detect_objects_action_signal: pyqtSignal = pyqtSignal(bool)
+    _check_play_action_signal: pyqtSignal = pyqtSignal(bool)
+    _check_fullscreen_action_signal: pyqtSignal = pyqtSignal(bool)
+    _check_resizable_action_signal: pyqtSignal = pyqtSignal(bool)
+    _check_detect_objects_action_signal: pyqtSignal = pyqtSignal(bool)
 
     def __init__(self):
         super().__init__()
@@ -47,7 +47,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._view_menu: QMenu = None
         self._configuration_menu: QMenu = None
 
-    def _build(self):
+    def _build_widgets(self):
         self._camera_dialog = SelectDeviceDialog(self._livia_window)
 
         self._add_file_menu()
@@ -56,6 +56,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._add_view_menu()
         self._add_configuration_menu()
 
+    def _connect_widgets(self):
         self._camera_dialog.accepted.connect(self._on_accept_camera)
 
         self._open_file_action.triggered.connect(self._on_open_file)
@@ -65,11 +66,13 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._toggle_video_analyzer_action.triggered.connect(self._on_toggle_detect_objects)
         self._play_action.triggered.connect(self._on_toggle_play)
 
-        self.check_play_action_signal.connect(self._on_check_play_action_signal)
-        self.check_fullscreen_action_signal.connect(self._on_check_fullscreen_action_signal)
-        self.check_resizable_action_signal.connect(self._on_check_resizable_action_signal)
-        self.check_detect_objects_action_signal.connect(self._on_check_detect_objects_action_signal)
+    def _connect_signals(self):
+        self._check_play_action_signal.connect(self._on_check_play_action_signal)
+        self._check_fullscreen_action_signal.connect(self._on_check_fullscreen_action_signal)
+        self._check_resizable_action_signal.connect(self._on_check_resizable_action_signal)
+        self._check_detect_objects_action_signal.connect(self._on_check_detect_objects_action_signal)
 
+    def _listen_livia(self):
         self._livia_window.status.display_status.add_display_status_change_listener(
             build_listener(DisplayStatusChangeListener,
                            fullscreen_changed=self._on_fullscreen_changed,
@@ -86,6 +89,12 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
                            resumed=self._on_video_resumed
                            )
         )
+
+    def _disconnect_signals(self):
+        self._check_play_action_signal.disconnect(self._on_check_play_action_signal)
+        self._check_fullscreen_action_signal.disconnect(self._on_check_fullscreen_action_signal)
+        self._check_resizable_action_signal.disconnect(self._on_check_resizable_action_signal)
+        self._check_detect_objects_action_signal.disconnect(self._on_check_detect_objects_action_signal)
 
     def _add_file_menu(self):
         self._open_file_action = QAction(self._livia_window)
@@ -245,35 +254,35 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
     def _on_fullscreen_changed(self, event: DisplayStatusChangeEvent):
         if self._fullscreen_action.isChecked() != event.value:
-            self.check_fullscreen_action_signal.emit(event.value)
+            self._check_fullscreen_action_signal.emit(event.value)
 
     def _on_resizable_changed(self, event: DisplayStatusChangeEvent):
         if self._resizable_action.isChecked() != event.value:
-            self.check_resizable_action_signal.emit(event.value)
+            self._check_resizable_action_signal.emit(event.value)
 
     def _on_detect_objects_changed(self, event: DisplayStatusChangeEvent):
         if self._toggle_video_analyzer_action.isChecked() != event.value:
-            self.check_detect_objects_action_signal.emit(event.value)
+            self._check_detect_objects_action_signal.emit(event.value)
 
     def _on_video_started(self, event: ProcessChangeEvent):
         if not self._play_action.isChecked():
-            self.check_play_action_signal.emit(True)
+            self._check_play_action_signal.emit(True)
 
     def _on_video_stopped(self, event: ProcessChangeEvent):
         if self._play_action.isChecked():
-            self.check_play_action_signal.emit(False)
+            self._check_play_action_signal.emit(False)
 
     def _on_video_finished(self, event: ProcessChangeEvent):
         if self._play_action.isChecked():
-            self.check_play_action_signal.emit(False)
+            self._check_play_action_signal.emit(False)
 
     def _on_video_paused(self, event: ProcessChangeEvent):
         if self._play_action.isChecked():
-            self.check_play_action_signal.emit(False)
+            self._check_play_action_signal.emit(False)
 
     def _on_video_resumed(self, event: ProcessChangeEvent):
         if not self._play_action.isChecked():
-            self.check_play_action_signal.emit(True)
+            self._check_play_action_signal.emit(True)
 
     def __change_frame_input(self, frame_input: FrameInput):
         status = self._livia_window.status.video_stream_status

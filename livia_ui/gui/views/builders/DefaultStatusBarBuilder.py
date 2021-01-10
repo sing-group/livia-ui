@@ -14,7 +14,7 @@ from livia_ui.gui.views.builders.StatusBarBuilder import StatusBarBuilder
 
 
 class DefaultStatusBarBuilder(StatusBarBuilder):
-    update_status_signal: pyqtSignal = pyqtSignal(str)
+    _update_status_signal: pyqtSignal = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -25,14 +25,16 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
         self._record_settings_button: QToolButton = None
         self._time_recording: QTimeEdit = None
 
-    def _build(self):
+    def _build_widgets(self):
         self._build_status_label()
 
         self._parent.addWidget(self._status_label)
         self._parent.addPermanentWidget(self._build_recording_panel())
 
-        self.update_status_signal.connect(self._on_update_status_signal)
+    def _connect_signals(self):
+        self._update_status_signal.connect(self._on_update_status_signal)
 
+    def _listen_livia(self):
         self._livia_window.status.video_stream_status.frame_processor.add_process_change_listener(
             build_listener(ProcessChangeListener,
                            started=self._on_video_stream_started,
@@ -46,6 +48,9 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
         self._livia_window.status.display_status.add_display_status_change_listener(
             build_listener(DisplayStatusChangeListener, status_message_changed=self._on_status_message_change)
         )
+
+    def _disconnect_signals(self):
+        self._update_status_signal.disconnect(self._on_update_status_signal)
 
     def _build_status_label(self):
         self._status_label = QLabel()
@@ -112,4 +117,4 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
         self._livia_window.status.display_status.status_message = "Video finished"
 
     def _on_status_message_change(self, event: DisplayStatusChangeEvent[str]):
-        self.update_status_signal.emit(event.value)
+        self._update_status_signal.emit(event.value)

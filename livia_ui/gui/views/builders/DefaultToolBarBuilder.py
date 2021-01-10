@@ -32,13 +32,13 @@ _MIN_FRAMES_IN_DEQUE: int = 5
 
 
 class DefaultToolBarBuilder(ToolBarBuilder):
-    update_progress_signal: pyqtSignal = pyqtSignal(int)
-    update_fps_signal: pyqtSignal = pyqtSignal(float)
-    show_threshold_signal: pyqtSignal = pyqtSignal(float, float, float, float)
-    hide_threshold_signal: pyqtSignal = pyqtSignal()
-    change_threshold_signal: pyqtSignal = pyqtSignal(float)
-    show_progress_signal: pyqtSignal = pyqtSignal(int, int)
-    hide_progress_signal: pyqtSignal = pyqtSignal()
+    _update_progress_signal: pyqtSignal = pyqtSignal(int)
+    _update_fps_signal: pyqtSignal = pyqtSignal(float)
+    _show_threshold_signal: pyqtSignal = pyqtSignal(float, float, float, float)
+    _hide_threshold_signal: pyqtSignal = pyqtSignal()
+    _change_threshold_signal: pyqtSignal = pyqtSignal(float)
+    _show_progress_signal: pyqtSignal = pyqtSignal(int, int)
+    _hide_progress_signal: pyqtSignal = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -58,40 +58,53 @@ class DefaultToolBarBuilder(ToolBarBuilder):
             ThresholdChangeListener, threshold_changed=self._on_threshold_changed
         )
 
-    def _build(self):
+    def _build_widgets(self):
         layout = self._parent.layout()
 
         layout.addWidget(self._build_widget_progress_bar(), BorderLayout.West)
         layout.addWidget(self._build_threshold_panel(), BorderLayout.Center)
         layout.addWidget(self._build_widget_fps_counter(), BorderLayout.East)
 
-        self.__add_output_callback()
-
-        self.update_progress_signal.connect(self._on_update_progress_signal)
-        self.update_fps_signal.connect(self._on_update_fps_signal)
-        self.show_threshold_signal.connect(self._on_show_threshold_signal)
-        self.hide_threshold_signal.connect(self._on_hide_threshold_signal)
-        self.change_threshold_signal.connect(self._on_change_threshold_signal)
-        self.show_progress_signal.connect(self._on_show_progress_signal)
-        self.hide_progress_signal.connect(self._on_hide_progress_signal)
-
+    def _connect_widgets(self):
         self._threshold_spin.valueChanged.connect(self._on_threshold_spin_value_changed)
 
-        self._livia_window.status.video_stream_status.frame_processor.add_process_change_listener(
+    def _connect_signals(self):
+        self._update_progress_signal.connect(self._on_update_progress_signal)
+        self._update_fps_signal.connect(self._on_update_fps_signal)
+        self._show_threshold_signal.connect(self._on_show_threshold_signal)
+        self._hide_threshold_signal.connect(self._on_hide_threshold_signal)
+        self._change_threshold_signal.connect(self._on_change_threshold_signal)
+        self._show_progress_signal.connect(self._on_show_progress_signal)
+        self._hide_progress_signal.connect(self._on_hide_progress_signal)
+
+    def _listen_livia(self):
+        self.__add_output_callback()
+
+        frame_processor = self._livia_window.status.video_stream_status.frame_processor
+        frame_processor.add_process_change_listener(
             build_listener(ProcessChangeListener,
                            resumed=self._on_stream_resumed)
         )
 
-        self._livia_window.status.video_stream_status.frame_processor.add_io_change_listener(
+        frame_processor.add_io_change_listener(
             build_listener(IOChangeListener,
                            input_changed=self._on_input_changed,
                            output_changed=self._on_output_changed)
         )
 
-        self._livia_window.status.video_stream_status.frame_processor.add_frame_analyzer_change_listener(
+        frame_processor.add_frame_analyzer_change_listener(
             build_listener(FrameAnalyzerChangeListener,
                            analyzer_changed=self._on_analyzer_changed)
         )
+
+    def _disconnect_signals(self):
+        self._update_progress_signal.disconnect(self._on_update_progress_signal)
+        self._update_fps_signal.disconnect(self._on_update_fps_signal)
+        self._show_threshold_signal.disconnect(self._on_show_threshold_signal)
+        self._hide_threshold_signal.disconnect(self._on_hide_threshold_signal)
+        self._change_threshold_signal.disconnect(self._on_change_threshold_signal)
+        self._show_progress_signal.disconnect(self._on_show_progress_signal)
+        self._hide_progress_signal.disconnect(self._on_hide_progress_signal)
 
     def _build_widget_progress_bar(self) -> QWidget:
         self._progress_bar = QProgressBar(self._parent)
@@ -227,7 +240,7 @@ class DefaultToolBarBuilder(ToolBarBuilder):
     def _on_show_frame(self, frame: ndarray):
         self._last_frames_time.append(time())
         self._update_fps()
-        self.update_progress_signal.emit(
+        self._update_progress_signal.emit(
             self._livia_window.status.video_stream_status.frame_input.get_current_frame_index())
 
     def _on_stream_resumed(self, event: ProcessChangeEvent):
@@ -237,9 +250,9 @@ class DefaultToolBarBuilder(ToolBarBuilder):
         self._reset_fps()
 
         if isinstance(event.old, SeekableFrameInput):
-            self.hide_progress_signal.emit()
+            self._hide_progress_signal.emit()
         if isinstance(event.new, SeekableFrameInput):
-            self.show_progress_signal.emit(event.new.get_current_frame_index(), event.new.get_length_in_frames())
+            self._show_progress_signal.emit(event.new.get_current_frame_index(), event.new.get_length_in_frames())
 
     def _on_output_changed(self, event: IOChangeEvent[FrameOutput]):
         if not self.__is_callback_in_frame_output(event.new):
@@ -249,13 +262,13 @@ class DefaultToolBarBuilder(ToolBarBuilder):
         if isinstance(event.old, HasThreshold) != isinstance(event.new, HasThreshold):
             if isinstance(event.new, HasThreshold):
                 print(event.new.threshold)
-                self.show_threshold_signal.emit(event.new.threshold, event.new.min_threshold, event.new.max_threshold,
-                                                event.new.threshold_step)
+                self._show_threshold_signal.emit(event.new.threshold, event.new.min_threshold, event.new.max_threshold,
+                                                 event.new.threshold_step)
             else:
-                self.hide_threshold_signal.emit()
+                self._hide_threshold_signal.emit()
 
     def _on_threshold_changed(self, event: ThresholdChangeEvent):
-        self.change_threshold_signal.emit(event.new)
+        self._change_threshold_signal.emit(event.new)
 
     def _on_threshold_spin_value_changed(self):
         analyzer = self._livia_window.status.video_stream_status.frame_processor.frame_analyzer
@@ -269,11 +282,11 @@ class DefaultToolBarBuilder(ToolBarBuilder):
         frames = len(self._last_frames_time)
         if frames >= _MIN_FRAMES_IN_DEQUE:
             elapsed = self._last_frames_time[-1] - self._last_frames_time[0]
-            self.update_fps_signal.emit(frames / elapsed)
+            self._update_fps_signal.emit(frames / elapsed)
 
     def _reset_fps(self):
         self._last_frames_time.clear()
-        self.update_fps_signal.emit(0.0)
+        self._update_fps_signal.emit(0.0)
 
     def __is_callback_in_frame_output(self, output: FrameOutput) -> bool:
         if output == self._callback_output:

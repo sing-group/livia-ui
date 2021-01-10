@@ -28,22 +28,44 @@ class GuiBuilder(QObject, Generic[T]):
             self.moveToThread(self._thread)
             self._thread.finished.connect(self._thread.deleteLater)
 
-    def build(self, livia_window: LiviaWindow, parent: T):
-        self._livia_window = livia_window
-        self._parent = parent
-
-        self._build()
-
-        if self._thread:
-            self._thread.start()
-            self._thread.setPriority(self._thread_priority)
-
     def _translate(self, text: str) -> str:
         return QCoreApplication.translate(self.__class__.__name__, text)
 
     def _get_shortcuts(self, action: ShortcutAction) -> Tuple[str]:
         return self._livia_window.status.shortcut_status.get_keys(action)
 
-    @abstractmethod
-    def _build(self):
-        raise NotImplementedError()
+    def build(self, livia_window: LiviaWindow, parent: T):
+        self._livia_window = livia_window
+        self._parent = parent
+
+        self._init()
+
+        self._parent.destroyed.connect(self._on_destroy_parent)
+
+        if self._thread:
+            self._thread.start()
+            self._thread.setPriority(self._thread_priority)
+
+    def _init(self):
+        self._build_widgets()
+        self._connect_widgets()
+        self._connect_signals()
+        self._listen_livia()
+
+    def _build_widgets(self):
+        pass
+
+    def _connect_widgets(self):
+        pass
+
+    def _connect_signals(self):
+        pass
+
+    def _listen_livia(self):
+        pass
+
+    def _disconnect_signals(self):
+        pass
+
+    def _on_destroy_parent(self):
+        self._disconnect_signals()

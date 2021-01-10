@@ -1,7 +1,5 @@
-from typing import Optional
-
 from PyQt5.QtCore import Qt, pyqtSignal, QThread, pyqtSlot
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QLabel, QSizePolicy
 from numpy import ndarray
 
@@ -10,7 +8,6 @@ from livia.output.CompositeFrameOutput import CompositeFrameOutput
 from livia.process.analyzer.FrameByFrameSquareFrameAnalyzer import FrameByFrameSquareFrameAnalyzer
 from livia.process.analyzer.NoChangeFrameAnalyzer import NoChangeFrameAnalyzer
 from livia.process.listener import build_listener
-from livia_ui.gui import LIVIA_GUI_LOGGER
 from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
 from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
 from livia_ui.gui.views.builders.VideoPanelBuilder import VideoPanelBuilder
@@ -18,28 +15,23 @@ from livia_ui.gui.views.utils import convert_image_opencv_to_qt
 
 
 class DefaultVideoPanelBuilder(VideoPanelBuilder):
-    update_image_signal: pyqtSignal = pyqtSignal(QPixmap)
-    clear_image_signal: pyqtSignal = pyqtSignal()
+    _update_image_signal: pyqtSignal = pyqtSignal(QPixmap)
+    _clear_image_signal: pyqtSignal = pyqtSignal()
 
     def __init__(self):
         super().__init__(True, QThread.HighPriority)
         self._video_label: QLabel = None
 
-    def _build(self):
-        self._video_label = QLabel(self._parent)
-        self._video_label.setMinimumSize(800, 600)
-        self._video_label.setContentsMargins(0, 0, 0, 0)
-        self._video_label.setAlignment(Qt.AlignCenter)
-        self._video_label.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-        self._video_label.setAutoFillBackground(True)
-        self._video_label.setText(self._translate("No image"))
-        self._video_label.setObjectName("_video_panel__video_label")
+    def _build_widgets(self):
+        self._build_video_label()
         self._parent.layout().addWidget(self._video_label)
 
-        self._update_detect_objects(self._livia_window.status.display_status.detect_objects)
+    def _connect_signals(self):
+        self._update_image_signal.connect(self._on_update_image_signal)
+        self._clear_image_signal.connect(self._on_clear_image_signal)
 
-        self.update_image_signal.connect(self._on_update_image_signal)
-        self.clear_image_signal.connect(self._on_clear_image_signal)
+    def _listen_livia(self):
+        self._update_detect_objects(self._livia_window.status.display_status.detect_objects)
 
         self._livia_window.status.video_stream_status.frame_output = CompositeFrameOutput(
             CallbackFrameOutput(
@@ -53,6 +45,20 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
             build_listener(DisplayStatusChangeListener,
                            detect_objects_changed=self._on_detect_objects_changed)
         )
+
+    def _disconnect_signals(self):
+        self._update_image_signal.connect(self._on_update_image_signal)
+        self._clear_image_signal.connect(self._on_clear_image_signal)
+
+    def _build_video_label(self):
+        self._video_label = QLabel(self._parent)
+        self._video_label.setMinimumSize(800, 600)
+        self._video_label.setContentsMargins(0, 0, 0, 0)
+        self._video_label.setAlignment(Qt.AlignCenter)
+        self._video_label.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        self._video_label.setAutoFillBackground(True)
+        self._video_label.setText(self._translate("No image"))
+        self._video_label.setObjectName("_video_panel__video_label")
 
     @pyqtSlot(QPixmap)
     def _on_update_image_signal(self, image: QPixmap):
@@ -69,12 +75,12 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
             size = self._video_label.size()
             image = image.scaled(size.width(), size.height(), Qt.KeepAspectRatio)
 
-            self.update_image_signal.emit(QPixmap.fromImage(image))
+            self._update_image_signal.emit(QPixmap.fromImage(image))
         else:
-            self.clear_image_signal.emit()
+            self._clear_image_signal.emit()
 
     def _on_close(self):
-        self.clear_image_signal.emit()
+        self._clear_image_signal.emit()
 
     def _on_detect_objects_changed(self, event: DisplayStatusChangeEvent):
         self._update_detect_objects(event.value)
