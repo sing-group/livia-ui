@@ -1,18 +1,19 @@
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QResizeEvent
 from PyQt5.QtWidgets import QMainWindow
 
+from livia.process.listener import build_listener
 from livia_ui.gui.status.LiviaStatus import LiviaStatus
+from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
+from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
 from livia_ui.gui.views.UiLiviaWindow import UiLiviaWindow
 from livia_ui.gui.views.builders.GuiBuilders import GuiBuilders
 
 
 class LiviaWindow(QMainWindow, UiLiviaWindow):
-    exit_code_signal = pyqtSignal(int)
+    change_fullscreen: pyqtSignal = pyqtSignal(bool)
 
     def __init__(self, livia_status: LiviaStatus, gui_builders: GuiBuilders = GuiBuilders()):
-        self.EXIT_CODE_REBOOT = -1
-
         super(LiviaWindow, self).__init__()
 
         self._livia_status = livia_status
@@ -22,6 +23,14 @@ class LiviaWindow(QMainWindow, UiLiviaWindow):
         size = livia_status.display_status.window_size
         self.resize(*size)
         self.setMinimumSize(*size)
+
+        self.change_fullscreen.connect(self._on_change_fullscreen)
+
+        self._livia_status.display_status.add_display_status_change_listener(
+            build_listener(DisplayStatusChangeListener,
+                           fullscreen_changed=self._on_fullscreen_changed
+                           )
+        )
 
         self._start_movie()
 
@@ -34,41 +43,20 @@ class LiviaWindow(QMainWindow, UiLiviaWindow):
     def status(self) -> LiviaStatus:
         return self._livia_status
 
-    @property
-    def fullscreen(self) -> bool:
-        return self._livia_status.display_status.fullscreen
+    @pyqtSlot(bool)
+    def _on_change_fullscreen(self, fullscreen: bool):
+        if fullscreen:
+            self.showFullScreen()
+        else:
+            self.showNormal()
 
-    @fullscreen.setter
-    def fullscreen(self, fullscreen: bool) -> None:
-        self._livia_status.display_status.fullscreen = fullscreen
-
-    @property
-    def resizable(self) -> bool:
-        return self._livia_status.display_status.resizable
-
-    @resizable.setter
-    def resizable(self, resizable: bool) -> None:
-        self._livia_status.display_status.resizable = resizable
-
-    @property
-    def status_message(self) -> str:
-        return self._livia_status.display_status.status_message
-
-    @status_message.setter
-    def status_message(self, message: str) -> None:
-        self._livia_status.display_status.status_message = message
-
-    def _restart(self) -> None:
-        self.exit_code_signal.emit(-1)
-        self.close_app()
+    def _on_fullscreen_changed(self, event: DisplayStatusChangeEvent[bool]):
+        self.change_fullscreen.emit(event.value)
 
     def _start_movie(self) -> None:
         if not self.status.video_stream_status.frame_processor.is_running():
             self._livia_status.video_stream_status.frame_processor.start()
 
-    def close_app(self) -> None:
-        self.deleteLater()
-
     def closeEvent(self, event) -> None:
-        self.close_app()
+        self.deleteLater()
         event.accept()

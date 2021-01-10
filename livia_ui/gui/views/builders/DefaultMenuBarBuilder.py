@@ -196,6 +196,12 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     @pyqtSlot(bool)
     def _on_check_fullscreen_action_signal(self, checked: bool):
         self._fullscreen_action.setChecked(checked)
+        if checked:
+            print("Fullscreen")
+            self._livia_window.showFullScreen()
+        else:
+            print("Normal")
+            self._livia_window.showNormal()
 
     @pyqtSlot(bool)
     def _on_check_resizable_action_signal(self, checked: bool):
