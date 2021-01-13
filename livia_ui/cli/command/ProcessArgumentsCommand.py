@@ -64,7 +64,7 @@ class ProcessArgumentsCommand(ArgumentsCommand):
         analyzers: List[(int, FrameAnalyzerMetadata)] = []
 
         for analyzer_metadata in FrameAnalyzerManager.list_analyzers():
-            analyzer_args, order = self._extract_args_for_analyzer(args, analyzer_metadata)
+            analyzer_args, order = ProcessArgumentsCommand._extract_args_for_analyzer(args, analyzer_metadata)
 
             if analyzer_args is not None:
                 analyzer = analyzer_metadata.analyzer_class()
@@ -87,8 +87,9 @@ class ProcessArgumentsCommand(ArgumentsCommand):
 
         return analyzer
 
-    def _extract_args_for_analyzer(self, args: Namespace, analyzer: FrameAnalyzerMetadata) ->\
-        Tuple[Optional[Namespace], Optional[int]]:
+    @staticmethod
+    def _extract_args_for_analyzer(args: Namespace, analyzer: FrameAnalyzerMetadata) ->\
+            Tuple[Optional[Namespace], Optional[int]]:
         def arg(arg_id):
             return f"analyzer_{analyzer.id}_{arg_id}".replace("-", "_")
 
