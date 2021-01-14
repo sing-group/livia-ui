@@ -70,7 +70,7 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
         self._record_button.setObjectName("_status_bar__record_button")
         self._record_button.setEnabled(False)
         self._record_button.setText("")
-        self._record_button.setIcon(QIcon(os.path.join(path, "icons", "record.png")))
+        self._record_button.setIcon(self._get_icon("record.png"))
         self._record_button.setIconSize(QSize(16, 16))
 
         self._record_settings_button = QToolButton()
@@ -82,7 +82,7 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
 
         self._time_recording = QTimeEdit()
         self._time_recording.setObjectName("_status_bar__time_recording")
-        self._time_recording.setDisplayFormat(self._translate("ss:mm"))
+        self._time_recording.setDisplayFormat("mm:ss")
         self._time_recording.setAlignment(Qt.AlignCenter)
         self._time_recording.setReadOnly(True)
         self._time_recording.setButtonSymbols(QAbstractSpinBox.NoButtons)

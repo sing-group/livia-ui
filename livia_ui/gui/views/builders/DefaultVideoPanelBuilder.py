@@ -3,6 +3,8 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QLabel, QSizePolicy
 from numpy import ndarray
 
+from livia.input.FrameInput import FrameInput
+from livia.input.SeekableFrameInput import SeekableFrameInput
 from livia.output.CallbackFrameOutput import CallbackFrameOutput
 from livia.output.CompositeFrameOutput import CompositeFrameOutput
 from livia.output.FrameOutput import FrameOutput
@@ -17,27 +19,36 @@ from livia_ui.gui.status.listener.FrameProcessingStatusChangeEvent import FrameP
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeListener import FrameProcessingStatusChangeListener
 from livia_ui.gui.views.builders.VideoPanelBuilder import VideoPanelBuilder
 from livia_ui.gui.views.utils import convert_image_opencv_to_qt
+from livia_ui.gui.views.utils.VideoBar import VideoBar
 
 
 class DefaultVideoPanelBuilder(VideoPanelBuilder):
     _update_image_signal: pyqtSignal = pyqtSignal(QPixmap)
     _clear_image_signal: pyqtSignal = pyqtSignal()
+    _change_video_bar_visibility_signal: pyqtSignal = pyqtSignal(bool)
 
     def __init__(self):
         super().__init__(True, QThread.HighPriority)
         self._video_label: QLabel = None
+        self._video_bar: VideoBar = None
 
         self._frame_output_callback: CallbackFrameOutput = CallbackFrameOutput(
             output_frame_callback=self._on_show_frame
         )
 
     def _build_widgets(self):
-        self._build_video_label()
-        self._parent.layout().addWidget(self._video_label)
+        self._parent.layout().addWidget(self._build_video_label(), 1000)
+        self._parent.layout().addWidget(self._build_video_bar(), 1)
+
+        if isinstance(self._livia_window.status.video_stream_status.frame_input, SeekableFrameInput):
+            self._video_bar.show()
+        else:
+            self._video_bar.hide()
 
     def _connect_signals(self):
         self._update_image_signal.connect(self._on_update_image_signal)
         self._clear_image_signal.connect(self._on_clear_image_signal)
+        self._change_video_bar_visibility_signal.connect(self._on_change_video_bar_visibility_signal)
 
     def _listen_livia(self):
         self._update_detect_objects(self._livia_window.status.display_status.detect_objects)
@@ -46,6 +57,7 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
 
         self._livia_window.status.video_stream_status.add_frame_processing_status_change_listener(
             build_listener(FrameProcessingStatusChangeListener,
+                           frame_input_changed=self._on_frame_input_changed,
                            frame_output_changed=self._on_frame_output_changed
                            )
         )
@@ -61,8 +73,9 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         )
 
     def _disconnect_signals(self):
-        self._update_image_signal.connect(self._on_update_image_signal)
-        self._clear_image_signal.connect(self._on_clear_image_signal)
+        self._update_image_signal.disconnect(self._on_update_image_signal)
+        self._clear_image_signal.disconnect(self._on_clear_image_signal)
+        self._change_video_bar_visibility_signal.disconnect(self._on_change_video_bar_visibility_signal)
 
     def _build_video_label(self):
         self._video_label = QLabel(self._parent)
@@ -74,7 +87,20 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         self._video_label.setText(self._translate("No image"))
         self._video_label.setObjectName("_video_panel__video_label")
 
+        return self._video_label
+
+    def _build_video_bar(self):
+        frame_processor = self._livia_window.status.video_stream_status.frame_processor
+        self._video_bar = VideoBar(frame_processor, self._parent)
+
+        return self._video_bar
+
     def _add_frame_output_callback(self):
+        frame_output = self._livia_window.status.video_stream_status.frame_output
+
+        if isinstance(frame_output, CompositeFrameOutput) and frame_output.has_descendant(self._frame_output_callback):
+            return
+
         self._livia_window.status.video_stream_status.frame_output = CompositeFrameOutput(
             self._frame_output_callback,
             self._livia_window.status.video_stream_status.frame_output
@@ -87,6 +113,18 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
     @pyqtSlot()
     def _on_clear_image_signal(self):
         self._video_label.setText(self._translate("No image"))
+
+    @pyqtSlot(bool)
+    def _on_change_video_bar_visibility_signal(self, visible: bool):
+        if visible:
+            if self._video_bar.isHidden():
+                self._video_bar.show()
+        else:
+            if not self._video_bar.isHidden():
+                self._video_bar.hide()
+
+    def _on_frame_input_changed(self, event: FrameProcessingStatusChangeEvent[FrameInput]):
+        self._change_video_bar_visibility_signal.emit(isinstance(event.new, SeekableFrameInput))
 
     def _on_frame_output_changed(self, event: FrameProcessingStatusChangeEvent[FrameOutput]):
         if isinstance(event.old, CompositeFrameOutput):

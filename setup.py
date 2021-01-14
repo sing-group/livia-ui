@@ -14,7 +14,7 @@ setuptools.setup(
     url="https://dev.sing-group.org/gitlab/polydeep/livia-ui",
     packages=setuptools.find_packages(),
     install_requires=[
-        "livia-core==0.1.dev35",
+        "livia-core==0.1.dev36",
         "pyqt5==5.14.2"
     ],
     classifiers=[

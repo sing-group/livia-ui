@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 from abc import abstractmethod
-from typing import TypeVar, Generic, TYPE_CHECKING, Optional, Tuple
+from typing import TypeVar, Generic, TYPE_CHECKING, Optional, Tuple, List
 
 from PyQt5.QtCore import QObject, QThread, QCoreApplication
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QStatusBar, QToolBar
 
 from livia_ui.gui.shortcuts.ShortcutAction import ShortcutAction
@@ -23,6 +25,8 @@ class GuiBuilder(QObject, Generic[T]):
         self._livia_window: Optional[LiviaWindow] = None
         self._parent: Optional[T] = None
 
+        self._path: str = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
         if independent_thread:
             self._thread = QThread()
             self.moveToThread(self._thread)
@@ -33,6 +37,9 @@ class GuiBuilder(QObject, Generic[T]):
 
     def _get_shortcuts(self, action: ShortcutAction) -> Tuple[str]:
         return self._livia_window.status.shortcut_status.get_keys(action)
+
+    def _get_icon(self, name: str, sub_path: List[str] = ["icons"]) -> QIcon:
+        return QIcon(os.path.join(self._path, *sub_path, name))
 
     def build(self, livia_window: LiviaWindow, parent: T):
         self._livia_window = livia_window

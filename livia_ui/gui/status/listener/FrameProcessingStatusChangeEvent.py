@@ -21,8 +21,10 @@ class FrameProcessingStatusChangeEvent(Generic[T]):
     def status(self):
         return self.__status
 
+    @property
     def new(self) -> T:
         return self.__new
 
+    @property
     def old(self) -> T:
         return self.__old
