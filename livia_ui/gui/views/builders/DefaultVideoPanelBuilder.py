@@ -1,3 +1,5 @@
+from typing import Dict
+
 from PyQt5.QtCore import Qt, pyqtSignal, QThread, pyqtSlot
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QLabel, QSizePolicy
@@ -34,9 +36,11 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
     def _build_widgets(self):
         self._parent.layout().addWidget(self._build_video_label())
 
-    def _connect_signals(self):
-        self._update_image_signal.connect(self._on_update_image_signal)
-        self._clear_image_signal.connect(self._on_clear_image_signal)
+    def _register_signals(self) -> Dict[str, pyqtSignal]:
+        return {
+            "_update_image_signal": (self._update_image_signal, self._on_update_image_signal),
+            "_clear_image_signal": (self._clear_image_signal, self._on_clear_image_signal)
+        }
 
     def _listen_livia(self):
         self._update_detect_objects(self._livia_window.status.display_status.detect_objects)
@@ -58,10 +62,6 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
             build_listener(ProcessChangeListener,
                            finished=self._on_stream_finished)
         )
-
-    def _disconnect_signals(self):
-        self._update_image_signal.disconnect(self._on_update_image_signal)
-        self._clear_image_signal.disconnect(self._on_clear_image_signal)
 
     def _build_video_label(self):
         self._video_label = QLabel(self._parent)
@@ -106,12 +106,12 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
             size = self._video_label.size()
             image = image.scaled(size.width(), size.height(), Qt.KeepAspectRatio)
 
-            self._update_image_signal.emit(QPixmap.fromImage(image))
+            self._emit_update_image_signal(QPixmap.fromImage(image))
         else:
-            self._clear_image_signal.emit()
+            self._emit_clear_image_signal()
 
     def _on_stream_finished(self, event: ProcessChangeEvent):
-        self._clear_image_signal.emit()
+        self._emit_clear_image_signal()
 
     def _on_detect_objects_changed(self, event: DisplayStatusChangeEvent):
         self._update_detect_objects(event.value)

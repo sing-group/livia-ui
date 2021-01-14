@@ -1,3 +1,5 @@
+from typing import Dict
+
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 
 from livia.input.FrameInput import FrameInput
@@ -13,15 +15,18 @@ class DefaultBottomToolBarBuilder(BottomToolBarBuilder):
     _change_video_bar_visibility_signal: pyqtSignal = pyqtSignal(bool)
 
     def __init__(self):
-        super().__init__()
+        super().__init__(True)
 
         self._video_bar: VideoBar = None
 
     def _build_widgets(self):
         self._parent.layout().addWidget(self._build_video_bar())
 
-    def _connect_signals(self):
-        self._change_video_bar_visibility_signal.connect(self._on_change_video_bar_visibility_signal)
+    def _register_signals(self) -> Dict[str, pyqtSignal]:
+        return {
+            "_change_video_bar_visibility_signal":
+                (self._change_video_bar_visibility_signal, self._on_change_video_bar_visibility_signal)
+        }
 
     def _listen_livia(self):
         self._livia_window.status.video_stream_status.add_frame_processing_status_change_listener(
@@ -32,10 +37,7 @@ class DefaultBottomToolBarBuilder(BottomToolBarBuilder):
 
     def _after_init(self):
         visible = isinstance(self._livia_window.status.video_stream_status.frame_input, SeekableFrameInput)
-        self._change_video_bar_visibility_signal.emit(visible)
-
-    def _disconnect_signals(self):
-        self._change_video_bar_visibility_signal.disconnect(self._on_change_video_bar_visibility_signal)
+        self._emit_change_video_bar_visibility_signal(visible)
 
     def _build_video_bar(self):
         frame_processor = self._livia_window.status.video_stream_status.frame_processor
@@ -50,4 +52,4 @@ class DefaultBottomToolBarBuilder(BottomToolBarBuilder):
             self._video_bar.setVisible(visible)
 
     def _on_frame_input_changed(self, event: FrameProcessingStatusChangeEvent[FrameInput]):
-        self._change_video_bar_visibility_signal.emit(isinstance(event.new, SeekableFrameInput))
+        self._emit_change_video_bar_visibility_signal(isinstance(event.new, SeekableFrameInput))

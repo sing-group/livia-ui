@@ -1,6 +1,6 @@
 from collections import deque
 from time import time
-from typing import Deque
+from typing import Deque, Callable, Tuple, Dict
 
 from PyQt5.QtCore import QLocale, Qt, pyqtSlot, pyqtSignal
 from PyQt5.QtGui import QFont
@@ -61,14 +61,16 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
     def _connect_widgets(self):
         self._threshold_spin.valueChanged.connect(self._on_threshold_spin_value_changed)
 
-    def _connect_signals(self):
-        self._update_progress_signal.connect(self._on_update_progress_signal)
-        self._update_fps_signal.connect(self._on_update_fps_signal)
-        self._show_threshold_signal.connect(self._on_show_threshold_signal)
-        self._hide_threshold_signal.connect(self._on_hide_threshold_signal)
-        self._change_threshold_signal.connect(self._on_change_threshold_signal)
-        self._show_progress_signal.connect(self._on_show_progress_signal)
-        self._hide_progress_signal.connect(self._on_hide_progress_signal)
+    def _register_signals(self) -> Dict[str, Tuple[pyqtSignal, Callable[..., None]]]:
+        return {
+            "_update_progress_signal": (self._update_progress_signal, self._on_update_progress_signal),
+            "_update_fps_signal": (self._update_fps_signal, self._on_update_fps_signal),
+            "_show_threshold_signal": (self._show_threshold_signal, self._on_show_threshold_signal),
+            "_hide_threshold_signal": (self._hide_threshold_signal, self._on_hide_threshold_signal),
+            "_change_threshold_signal": (self._change_threshold_signal, self._on_change_threshold_signal),
+            "_show_progress_signal": (self._show_progress_signal, self._on_show_progress_signal),
+            "_hide_progress_signal": (self._hide_progress_signal, self._on_hide_progress_signal)
+        }
 
     def _listen_livia(self):
         frame_processor = self._livia_window.status.video_stream_status.frame_processor
@@ -238,16 +240,16 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
     def _on_frame_outputted(self, event: ProcessChangeEvent):
         self._last_frames_time.append(time())
         self._update_fps()
-        self._update_progress_signal.emit(
+        self._emit_update_progress_signal(
             self._livia_window.status.video_stream_status.frame_input.get_current_frame_index() + 1)
 
     def _on_input_changed(self, event: IOChangeEvent[FrameInput]):
         self._reset_fps()
 
         if isinstance(event.old, SeekableFrameInput):
-            self._hide_progress_signal.emit()
+            self._emit_hide_progress_signal()
         if isinstance(event.new, SeekableFrameInput):
-            self._show_progress_signal.emit(event.new.get_current_frame_index() + 1, event.new.get_length_in_frames())
+            self._emit_show_progress_signal(event.new.get_current_frame_index() + 1, event.new.get_length_in_frames())
 
     def _on_analyzer_changed(self, event: FrameAnalyzerChangeEvent):
         old_analyzer = event.old
@@ -260,15 +262,15 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
             was_threshold_visible = False
 
         if isinstance(new_analyzer, HasThreshold):
-            self._show_threshold_signal.emit(new_analyzer.threshold, new_analyzer.min_threshold,
+            self._emit_show_threshold_signal(new_analyzer.threshold, new_analyzer.min_threshold,
                                              new_analyzer.max_threshold, new_analyzer.threshold_step)
             new_analyzer.add_threshold_change_listener(self._threshold_change_listener)
         else:
             if was_threshold_visible:
-                self._hide_threshold_signal.emit()
+                self._emit_hide_threshold_signal()
 
     def _on_threshold_changed(self, event: ThresholdChangeEvent):
-        self._change_threshold_signal.emit(event.new)
+        self._emit_change_threshold_signal(event.new)
 
     def _on_threshold_spin_value_changed(self):
         analyzer = self._livia_window.status.video_stream_status.frame_processor.frame_analyzer
@@ -282,8 +284,8 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         frames = len(self._last_frames_time)
         if frames >= _MIN_FRAMES_IN_DEQUE:
             elapsed = self._last_frames_time[-1] - self._last_frames_time[0]
-            self._update_fps_signal.emit(frames / elapsed)
+            self._emit_update_fps_signal(frames / elapsed)
 
     def _reset_fps(self):
         self._last_frames_time.clear()
-        self._update_fps_signal.emit(0.0)
+        self._emit_update_fps_signal(0.0)
