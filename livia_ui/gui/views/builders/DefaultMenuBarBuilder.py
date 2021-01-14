@@ -215,10 +215,8 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _on_check_fullscreen_action_signal(self, checked: bool):
         self._fullscreen_action.setChecked(checked)
         if checked:
-            print("Fullscreen")
             self._livia_window.showFullScreen()
         else:
-            print("Normal")
             self._livia_window.showNormal()
 
     @pyqtSlot(bool)
@@ -310,6 +308,8 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         if status.frame_processor.is_alive():
             status.frame_processor.stop_and_wait()
 
+        old_frame_input = status.frame_input
         status.frame_input = frame_input
+        old_frame_input.close()
 
         status.frame_processor.start()

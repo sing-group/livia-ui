@@ -20,14 +20,14 @@ from livia.process.listener.IOChangeListener import IOChangeListener
 from livia.process.listener.ProcessChangeEvent import ProcessChangeEvent
 from livia.process.listener.ProcessChangeListener import ProcessChangeListener
 from livia_ui.gui import LIVIA_GUI_LOGGER
-from livia_ui.gui.views.builders.ToolBarBuilder import ToolBarBuilder
+from livia_ui.gui.views.builders.TopToolBarBuilder import TopToolBarBuilder
 from livia_ui.gui.views.utils.BorderLayout import BorderLayout
 
 _FRAMES_DEQUE_SIZE: int = 100
 _MIN_FRAMES_IN_DEQUE: int = 5
 
 
-class DefaultToolBarBuilder(ToolBarBuilder):
+class DefaultTopToolBarBuilder(TopToolBarBuilder):
     _update_progress_signal: pyqtSignal = pyqtSignal(int)
     _update_fps_signal: pyqtSignal = pyqtSignal(float)
     _show_threshold_signal: pyqtSignal = pyqtSignal(float, float, float, float)
@@ -100,7 +100,7 @@ class DefaultToolBarBuilder(ToolBarBuilder):
 
     def _build_widget_progress_bar(self) -> QWidget:
         self._progress_bar = QProgressBar(self._parent)
-        self._progress_bar.setObjectName("_tool_bar__progress_bar")
+        self._progress_bar.setObjectName("_top_tool_bar__progress_bar")
         self._progress_bar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self._progress_bar.setAlignment(Qt.AlignCenter)
         self._progress_bar.setStyleSheet("background-color: rgb(255, 255, 255);")
@@ -123,7 +123,7 @@ class DefaultToolBarBuilder(ToolBarBuilder):
         layout.setContentsMargins(0, 0, 0, 0)
 
         self._threshold_label = QLabel(self._threshold_panel)
-        self._threshold_label.setObjectName("_tool_bar__threshold_label")
+        self._threshold_label.setObjectName("_top_tool_bar__threshold_label")
         self._threshold_label.setText(self._translate("Threshold:"))
         font = QFont()
         font.setPointSize(10)
@@ -132,7 +132,7 @@ class DefaultToolBarBuilder(ToolBarBuilder):
         self._threshold_label.setFont(font)
 
         self._threshold_spin = QDoubleSpinBox(self._parent)
-        self._threshold_spin.setObjectName("_tool_bar__threshold_spin")
+        self._threshold_spin.setObjectName("_top_tool_bar__threshold_spin")
         font = QFont()
         font.setPointSize(10)
         self._threshold_spin.setFont(font)
@@ -170,7 +170,7 @@ class DefaultToolBarBuilder(ToolBarBuilder):
         layout.setContentsMargins(0, 0, 0, 0)
 
         self._fps_label = QLabel(panel)
-        self._fps_label.setObjectName("_tool_bar__fps_label")
+        self._fps_label.setObjectName("_top_tool_bar__fps_label")
         self._fps_label.setText(self._translate("FPS:"))
         font = QFont()
         font.setPointSize(12)
@@ -181,7 +181,7 @@ class DefaultToolBarBuilder(ToolBarBuilder):
         self._fps_label.raise_()
 
         self._fps_counter = QLCDNumber(4, panel)
-        self._fps_counter.setObjectName("_tool_bar__fps_counter")
+        self._fps_counter.setObjectName("_top_tool_bar__fps_counter")
         self._fps_counter.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self._fps_counter.setStyleSheet("background-color: black")
         self._fps_counter.setSmallDecimalPoint(False)

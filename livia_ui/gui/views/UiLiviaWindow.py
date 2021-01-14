@@ -15,8 +15,9 @@ class UiLiviaWindow(object):
     def __init__(self):
         self._main_window: LiviaWindow = None
         self._menu_bar: QMenuBar = None
-        self._tool_bar: QStatusBar = None
+        self._top_tool_bar: QStatusBar = None
         self._video_panel: QWidget = None
+        self._bottom_tool_bar: QStatusBar = None
         self._central_panel: QWidget = None
         self._status_bar: QStatusBar = None
 
@@ -37,10 +38,10 @@ class UiLiviaWindow(object):
         central_layout = BorderLayout(self._central_panel)
         central_layout.setContentsMargins(0, 0, 0, 0)
 
-        self._tool_bar = QWidget(self._central_panel)
-        self._tool_bar.setMinimumHeight(24)
-        self._tool_bar.setObjectName("_tool_bar")
-        BorderLayout(self._tool_bar)
+        self._top_tool_bar = QWidget(self._central_panel)
+        self._top_tool_bar.setMinimumHeight(24)
+        self._top_tool_bar.setObjectName("_top_tool_bar")
+        BorderLayout(self._top_tool_bar)
 
         self._video_panel = QWidget(self._central_panel)
         self._video_panel.setObjectName("_video_panel")
@@ -48,16 +49,24 @@ class UiLiviaWindow(object):
         video_panel_layout = QVBoxLayout(self._video_panel)
         video_panel_layout.setContentsMargins(0, 0, 0, 0)
 
-        central_layout.addWidget(self._tool_bar, BorderLayout.North)
+        self._bottom_tool_bar = QWidget(self._central_panel)
+        self._bottom_tool_bar.setObjectName("_bottom_tool_bar")
+        self._bottom_tool_bar.setContentsMargins(0, 0, 0, 0)
+        bottom_tool_bar_layout = QVBoxLayout(self._bottom_tool_bar)
+        bottom_tool_bar_layout.setContentsMargins(0, 0, 0, 0)
+
+        central_layout.addWidget(self._top_tool_bar, BorderLayout.North)
         central_layout.addWidget(self._video_panel, BorderLayout.Center)
+        central_layout.addWidget(self._bottom_tool_bar, BorderLayout.South)
 
         main_window.setMenuBar(self._menu_bar)
         main_window.setCentralWidget(self._central_panel)
         main_window.setStatusBar(self._status_bar)
 
         builders.menu_bar_builder.build(main_window, self._menu_bar)
-        builders.tool_bar_builder.build(main_window, self._tool_bar)
+        builders.top_tool_bar_builder.build(main_window, self._top_tool_bar)
         builders.video_panel_builder.build(main_window, self._video_panel)
+        builders.bottom_tool_bar_builder.build(main_window, self._bottom_tool_bar)
         builders.status_bar_builder.build(main_window, self._status_bar)
 
     @property
@@ -74,7 +83,7 @@ class UiLiviaWindow(object):
 
     @property
     def tool_bar(self) -> QWidget:
-        return self._tool_bar
+        return self._top_tool_bar
 
     @property
     def video_panel(self) -> QWidget:

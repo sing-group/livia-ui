@@ -54,10 +54,15 @@ class GuiBuilder(QObject, Generic[T]):
             self._thread.setPriority(self._thread_priority)
 
     def _init(self):
+        self._before_init()
         self._build_widgets()
         self._connect_widgets()
         self._connect_signals()
         self._listen_livia()
+        self._after_init()
+
+    def _before_init(self):
+        pass
 
     def _build_widgets(self):
         pass
@@ -69,6 +74,9 @@ class GuiBuilder(QObject, Generic[T]):
         pass
 
     def _listen_livia(self):
+        pass
+
+    def _after_init(self):
         pass
 
     def _disconnect_signals(self):

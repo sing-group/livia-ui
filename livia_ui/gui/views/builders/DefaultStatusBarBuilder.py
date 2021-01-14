@@ -1,7 +1,6 @@
 import os
 
 from PyQt5.QtCore import Qt, QSize, QTime, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QLabel, QToolButton, QTimeEdit, QAbstractSpinBox, QDateTimeEdit, \
     QWidget, QHBoxLayout
 
