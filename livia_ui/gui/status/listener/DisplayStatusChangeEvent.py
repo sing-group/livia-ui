@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import TypeVar, Generic, TYPE_CHECKING
+from typing import TypeVar, Generic, TYPE_CHECKING, Tuple
 
 if TYPE_CHECKING:
     from livia_ui.gui.status.DisplayStatus import DisplayStatus
 
-T = TypeVar('T', bool, str)
+T = TypeVar('T', bool, str, Tuple[int, int])
 
 
 class DisplayStatusChangeEvent(Generic[T]):

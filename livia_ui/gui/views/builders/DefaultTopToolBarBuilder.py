@@ -73,7 +73,7 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         }
 
     def _listen_livia(self):
-        frame_processor = self._livia_window.status.video_stream_status.frame_processor
+        frame_processor = self._livia_status.video_stream_status.frame_processor
         frame_processor.add_process_change_listener(
             build_listener(ProcessChangeListener,
                            resumed=self._on_stream_resumed,
@@ -108,7 +108,7 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         self._progress_bar.setStyleSheet("background-color: rgb(255, 255, 255);")
         self._progress_bar.setValue(0)
 
-        frame_input = self._livia_window.status.video_stream_status.frame_input
+        frame_input = self._livia_status.video_stream_status.frame_input
         if isinstance(frame_input, SeekableFrameInput):
             self._progress_bar.setValue(frame_input.get_current_frame_index() + 1)
             self._progress_bar.setMaximum(frame_input.get_length_in_frames())
@@ -150,7 +150,7 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         layout.addWidget(self._threshold_label)
         layout.addWidget(self._threshold_spin)
 
-        analyzer = self._livia_window.status.video_stream_status.frame_processor.frame_analyzer
+        analyzer = self._livia_status.video_stream_status.frame_processor.frame_analyzer
         if isinstance(analyzer, HasThreshold):
             self._threshold_spin.setValue(analyzer.threshold)
             self._threshold_spin.setMaximum(analyzer.max_threshold)
@@ -238,7 +238,7 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         self._last_frames_time.append(time())
         self._update_fps()
         self._emit_update_progress_signal(
-            self._livia_window.status.video_stream_status.frame_input.get_current_frame_index() + 1)
+            self._livia_status.video_stream_status.frame_input.get_current_frame_index() + 1)
 
     def _on_input_changed(self, event: IOChangeEvent[FrameInput]):
         self._reset_fps()
@@ -270,7 +270,7 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         self._emit_change_threshold_signal(event.new)
 
     def _on_threshold_spin_value_changed(self):
-        analyzer = self._livia_window.status.video_stream_status.frame_processor.frame_analyzer
+        analyzer = self._livia_status.video_stream_status.frame_processor.frame_analyzer
         if isinstance(analyzer, HasThreshold):
             analyzer.threshold = self._threshold_spin.value()
         else:

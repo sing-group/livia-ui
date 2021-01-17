@@ -9,6 +9,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QStatusBar, QToolBar
 
 from livia_ui.gui.shortcuts.ShortcutAction import ShortcutAction
+from livia_ui.gui.status.LiviaStatus import LiviaStatus
 
 if TYPE_CHECKING:
     from livia_ui.gui.LiviaWindow import LiviaWindow
@@ -41,7 +42,7 @@ class GuiBuilder(QObject, Generic[T]):
         self._thread: Optional[_ActionQueueThread] = None
         self._thread_priority: int = thread_priority
 
-        self._livia_window: Optional[LiviaWindow] = None
+        self.__livia_window: Optional[LiviaWindow] = None
         self._parent: Optional[T] = None
 
         self._signals: Dict[str, Tuple[pyqtSignal, Callable[..., None]]] = {}
@@ -75,14 +76,28 @@ class GuiBuilder(QObject, Generic[T]):
     def _translate(self, text: str) -> str:
         return QCoreApplication.translate(self.__class__.__name__, text)
 
-    def _get_shortcuts(self, action: ShortcutAction) -> Tuple[str]:
-        return self._livia_window.status.shortcut_status.get_keys(action)
+    @property
+    def _livia_window(self) -> LiviaWindow:
+        if not self.__livia_window:
+            raise AssertionError("Livia window was not assigned")
+
+        return self.__livia_window
+
+    @property
+    def _livia_status(self) -> LiviaStatus:
+        return self._livia_window.status
+
+    def _get_shortcuts(self, action: ShortcutAction) -> Tuple[str, ...]:
+        if not self._livia_status.shortcut_status.has_action(action):
+            raise ValueError(f"Action not registered: {action}")
+
+        return self._livia_status.shortcut_status.get_keys(action)
 
     def _get_icon(self, name: str, sub_path: List[str] = ["icons"]) -> QIcon:
         return QIcon(os.path.join(self._path, *sub_path, name))
 
     def build(self, livia_window: LiviaWindow, parent: T):
-        self._livia_window = livia_window
+        self.__livia_window = livia_window
         self._parent = parent
 
         self._init()

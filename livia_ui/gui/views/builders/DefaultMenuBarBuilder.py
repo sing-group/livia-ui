@@ -82,14 +82,14 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         }
 
     def _listen_livia(self):
-        self._livia_window.status.display_status.add_display_status_change_listener(
+        self._livia_status.display_status.add_display_status_change_listener(
             build_listener(DisplayStatusChangeListener,
                            fullscreen_changed=self._on_fullscreen_changed,
                            resizable_changed=self._on_resizable_changed,
                            detect_objects_changed=self._on_detect_objects_changed
                            )
         )
-        self._livia_window.status.video_stream_status.frame_processor.add_process_change_listener(
+        self._livia_status.video_stream_status.frame_processor.add_process_change_listener(
             build_listener(ProcessChangeListener,
                            started=self._on_video_started,
                            stopped=self._on_video_stopped,
@@ -129,7 +129,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._play_action = QAction(self._livia_window)
         self._play_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_PLAY))
         self._play_action.setCheckable(True)
-        self._play_action.setChecked(self._livia_window.status.video_stream_status.frame_processor.is_running())
+        self._play_action.setChecked(self._livia_status.video_stream_status.frame_processor.is_running())
         self._play_action.setObjectName("_menu_bar__play")
         self._play_action.setText(self._translate("Play"))
 
@@ -144,7 +144,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._toggle_video_analyzer_action = QAction(self._livia_window)
         self._toggle_video_analyzer_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_VIDEO_ANALYSIS))
         self._toggle_video_analyzer_action.setCheckable(True)
-        self._toggle_video_analyzer_action.setChecked(self._livia_window.status.display_status.detect_objects)
+        self._toggle_video_analyzer_action.setChecked(self._livia_status.display_status.detect_objects)
         self._toggle_video_analyzer_action.setObjectName("_menu_bar__toggle_video_analyzer_action")
         self._toggle_video_analyzer_action.setText(self._translate("Analyze video"))
 
@@ -165,13 +165,13 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._fullscreen_action = QAction(self._livia_window)
         self._fullscreen_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_FULLSCREEN))
         self._fullscreen_action.setCheckable(True)
-        self._fullscreen_action.setChecked(self._livia_window.status.display_status.fullscreen)
+        self._fullscreen_action.setChecked(self._livia_status.display_status.fullscreen)
         self._fullscreen_action.setObjectName("_menu_bar__fullscreen_action")
         self._fullscreen_action.setText(self._translate("Fullscreen"))
         self._resizable_action = QAction(self._livia_window)
         self._resizable_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_RESIZABLE))
         self._resizable_action.setCheckable(True)
-        self._resizable_action.setChecked(self._livia_window.status.display_status.resizable)
+        self._resizable_action.setChecked(self._livia_status.display_status.resizable)
         self._resizable_action.setObjectName("_menu_bar__resizable_action")
         self._resizable_action.setText(self._translate("Resizable"))
 
@@ -256,20 +256,20 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self.__change_frame_input(DeviceFrameInput(self._camera_dialog.get_device()))
 
     def _on_toggle_resizable(self):
-        self._livia_window.status.display_status.toggle_resizable()
+        self._livia_status.display_status.toggle_resizable()
 
     def _on_toggle_fullscreen(self):
-        self._livia_window.status.display_status.toggle_fullscreen()
+        self._livia_status.display_status.toggle_fullscreen()
 
     def _on_toggle_detect_objects(self):
-        self._livia_window.status.display_status.toggle_detect_objects()
+        self._livia_status.display_status.toggle_detect_objects()
 
     def _on_toggle_play(self):
-        if self._livia_window.status.video_stream_status.frame_processor.is_alive():
-            if self._livia_window.status.video_stream_status.frame_processor.is_paused():
-                self._livia_window.status.video_stream_status.frame_processor.resume()
+        if self._livia_status.video_stream_status.frame_processor.is_alive():
+            if self._livia_status.video_stream_status.frame_processor.is_paused():
+                self._livia_status.video_stream_status.frame_processor.resume()
             else:
-                self._livia_window.status.video_stream_status.frame_processor.pause()
+                self._livia_status.video_stream_status.frame_processor.pause()
 
     def _on_fullscreen_changed(self, event: DisplayStatusChangeEvent):
         if self._fullscreen_action.isChecked() != event.value:
@@ -304,7 +304,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
             self._emit_check_play_action_signal(True)
 
     def __change_frame_input(self, frame_input: FrameInput):
-        status = self._livia_window.status.video_stream_status
+        status = self._livia_status.video_stream_status
 
         if status.frame_processor.is_alive():
             status.frame_processor.stop_and_wait()

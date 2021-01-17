@@ -38,7 +38,7 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
         }
 
     def _listen_livia(self):
-        self._livia_window.status.video_stream_status.frame_processor.add_process_change_listener(
+        self._livia_status.video_stream_status.frame_processor.add_process_change_listener(
             build_listener(ProcessChangeListener,
                            started=self._on_video_stream_started,
                            paused=self._on_video_stream_paused,
@@ -48,7 +48,7 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
                            )
         )
 
-        self._livia_window.status.display_status.add_display_status_change_listener(
+        self._livia_status.display_status.add_display_status_change_listener(
             build_listener(DisplayStatusChangeListener, status_message_changed=self._on_status_message_change)
         )
 
@@ -102,19 +102,19 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
         self._status_label.setText(self._translate(status))
 
     def _on_video_stream_started(self, event: ProcessChangeEvent):
-        self._livia_window.status.display_status.status_message = "Video started"
+        self._livia_status.display_status.status_message = "Video started"
 
     def _on_video_stream_paused(self, event: ProcessChangeEvent):
-        self._livia_window.status.display_status.status_message = "Video paused"
+        self._livia_status.display_status.status_message = "Video paused"
 
     def _on_video_stream_resumed(self, event: ProcessChangeEvent):
-        self._livia_window.status.display_status.status_message = "Video resumed"
+        self._livia_status.display_status.status_message = "Video resumed"
 
     def _on_video_stream_stopped(self, event: ProcessChangeEvent):
-        self._livia_window.status.display_status.status_message = "Video stopped"
+        self._livia_status.display_status.status_message = "Video stopped"
 
     def _on_video_stream_finished(self, event: ProcessChangeEvent):
-        self._livia_window.status.display_status.status_message = "Video finished"
+        self._livia_status.display_status.status_message = "Video finished"
 
     def _on_status_message_change(self, event: DisplayStatusChangeEvent[str]):
         self._emit_update_status_signal(event.value)

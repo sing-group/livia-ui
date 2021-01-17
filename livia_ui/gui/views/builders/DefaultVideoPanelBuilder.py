@@ -34,42 +34,42 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         self._parent.layout().addWidget(self._build_video_label())
 
     def _listen_livia(self):
-        self._update_detect_objects(self._livia_window.status.display_status.detect_objects)
+        self._update_detect_objects(self._livia_status.display_status.detect_objects)
 
         self._add_frame_output_callback()
 
-        self._livia_window.status.video_stream_status.add_frame_processing_status_change_listener(
+        self._livia_status.video_stream_status.add_frame_processing_status_change_listener(
             build_listener(FrameProcessingStatusChangeListener,
                            frame_output_changed=self._on_frame_output_changed
                            )
         )
 
-        self._livia_window.status.display_status.add_display_status_change_listener(
+        self._livia_status.display_status.add_display_status_change_listener(
             build_listener(DisplayStatusChangeListener,
                            detect_objects_changed=self._on_detect_objects_changed,
                            resizable_changed=self._on_resizable_changed)
         )
 
-        self._livia_window.status.video_stream_status.frame_processor.add_process_change_listener(
+        self._livia_status.video_stream_status.frame_processor.add_process_change_listener(
             build_listener(ProcessChangeListener,
                            finished=self._on_stream_finished)
         )
 
     def _build_video_label(self) -> VideoPanel:
-        self._video_panel = VideoPanel(self._livia_window.status.display_status.resizable, self._parent)
+        self._video_panel = VideoPanel(self._livia_status.display_status.resizable, self._parent)
         self._video_panel.setObjectName("_video_panel__video_label")
 
         return self._video_panel
 
     def _add_frame_output_callback(self):
-        frame_output = self._livia_window.status.video_stream_status.frame_output
+        frame_output = self._livia_status.video_stream_status.frame_output
 
         if isinstance(frame_output, CompositeFrameOutput) and frame_output.has_descendant(self._frame_output_callback):
             return
 
-        self._livia_window.status.video_stream_status.frame_output = CompositeFrameOutput(
+        self._livia_status.video_stream_status.frame_output = CompositeFrameOutput(
             self._frame_output_callback,
-            self._livia_window.status.video_stream_status.frame_output
+            self._livia_status.video_stream_status.frame_output
         )
 
     def _on_frame_output_changed(self, event: FrameProcessingStatusChangeEvent[FrameOutput]):
@@ -96,6 +96,6 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
     def _update_detect_objects(self, active: bool):
         if active:
             # TODO Change FrameByFrameSquareFrameAnalyzer for user configured analyzer when setup display is integrated
-            self._livia_window.status.video_stream_status.live_frame_analyzer = FrameByFrameSquareFrameAnalyzer()
+            self._livia_status.video_stream_status.live_frame_analyzer = FrameByFrameSquareFrameAnalyzer()
         else:
-            self._livia_window.status.video_stream_status.live_frame_analyzer = NoChangeFrameAnalyzer()
+            self._livia_status.video_stream_status.live_frame_analyzer = NoChangeFrameAnalyzer()

@@ -29,18 +29,18 @@ class DefaultBottomToolBarBuilder(BottomToolBarBuilder):
         }
 
     def _listen_livia(self):
-        self._livia_window.status.video_stream_status.add_frame_processing_status_change_listener(
+        self._livia_status.video_stream_status.add_frame_processing_status_change_listener(
             build_listener(FrameProcessingStatusChangeListener,
                            frame_input_changed=self._on_frame_input_changed,
                            )
         )
 
     def _after_init(self):
-        visible = isinstance(self._livia_window.status.video_stream_status.frame_input, SeekableFrameInput)
+        visible = isinstance(self._livia_status.video_stream_status.frame_input, SeekableFrameInput)
         self._emit_change_video_bar_visibility_signal(visible)
 
     def _build_video_bar(self):
-        frame_processor = self._livia_window.status.video_stream_status.frame_processor
+        frame_processor = self._livia_status.video_stream_status.frame_processor
         self._video_bar = VideoBar(frame_processor, self._parent)
         self._video_bar.setContentsMargins(0, 0, 0, 0)
 

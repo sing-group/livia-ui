@@ -17,7 +17,8 @@ if TYPE_CHECKING:
 
 
 class _Shortcut:
-    def __init__(self, action: ShortcutAction,
+    def __init__(self,
+                 action: ShortcutAction,
                  keys: Union[str, Set[str]],
                  window: Optional[LiviaWindow] = None,
                  listeners: EventListeners[ShortcutTriggerListener] = EventListeners[ShortcutTriggerListener]()):
@@ -60,7 +61,7 @@ class _Shortcut:
 
     def _notify_shortcut_trigger(self, keys: str):
         for listener in self._listeners:
-            listener.shortcut_triggered(ShortcutTriggerEvent(self, self._action, keys))
+            listener.shortcut_triggered(ShortcutTriggerEvent(self._action, keys))
 
     @property
     def keys(self) -> Set[str]:

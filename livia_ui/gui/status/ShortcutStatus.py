@@ -11,18 +11,18 @@ from livia_ui.gui.status.listener.ShortcutStatusChangeListener import ShortcutSt
 
 class ShortcutStatus:
     def __init__(self,
-                 action_keys: Dict[ShortcutAction, Set[str]] = {action: {action.get_default_shortcut()} for action in
-                                                                DefaultShortcutAction}):
+                 action_keys: Dict[ShortcutAction, Set[str]] =
+                    {action: {action.get_default_shortcut()} for action in DefaultShortcutAction}):
         self._action_keys: Dict[ShortcutAction, Set[str]] = action_keys
 
         self._listeners: EventListeners[ShortcutStatusChangeListener] = EventListeners[
             ShortcutStatusChangeListener]()
 
     @property
-    def shortcuts(self) -> Dict[ShortcutAction, Tuple[str]]:
+    def shortcuts(self) -> Dict[ShortcutAction, Tuple[str, ...]]:
         return {action: tuple(keys) for action, keys in self._action_keys.items()}
 
-    def get_keys(self, action: ShortcutAction) -> Tuple[str]:
+    def get_keys(self, action: ShortcutAction) -> Tuple[str, ...]:
         return tuple(self._action_keys[action])
 
     def add_action(self, action: ShortcutAction, keys: Union[Set[str], str] = set()):
@@ -31,7 +31,7 @@ class ShortcutStatus:
         else:
             self._action_keys[action] = {keys} if isinstance(keys, str) else keys
 
-            event = ShortcutStatusChangeEvent(self, action, None, keys)
+            event = ShortcutStatusChangeEvent(self, action, None, self._action_keys[action])
             for listener in self._listeners:
                 listener.shortcut_added(event)
 
@@ -54,11 +54,11 @@ class ShortcutStatus:
             current_keys = self._action_keys[action]
 
             if not current_keys.issuperset(keys):
-                current_keys = tuple(current_keys)
+                old_keys = tuple(current_keys)
                 self._action_keys[action].update({keys} if isinstance(keys, str) else keys)
                 new_keys = self._action_keys[action]
 
-                event = ShortcutStatusChangeEvent(self, action, current_keys, new_keys)
+                event = ShortcutStatusChangeEvent(self, action, old_keys, new_keys)
                 for listener in self._listeners:
                     listener.shortcut_modified(event)
         else:
@@ -69,11 +69,11 @@ class ShortcutStatus:
             current_keys = self._action_keys[action]
 
             if not current_keys.issuperset(keys):
-                current_keys = tuple(current_keys)
+                old_keys = tuple(current_keys)
                 self._action_keys[action] = {keys} if isinstance(keys, str) else keys
                 new_keys = self._action_keys[action]
 
-                event = ShortcutStatusChangeEvent(self, action, current_keys, new_keys)
+                event = ShortcutStatusChangeEvent(self, action, old_keys, new_keys)
                 for listener in self._listeners:
                     listener.shortcut_modified(event)
         else:
@@ -84,11 +84,11 @@ class ShortcutStatus:
             current_keys = self._action_keys[action]
 
             if any(current_keys.union(keys)):
-                current_keys = tuple(current_keys)
+                old_keys = tuple(current_keys)
                 self._action_keys[action].difference_update({keys} if isinstance(keys, str) else keys)
                 new_keys = self._action_keys[action]
 
-                event = ShortcutStatusChangeEvent(self, action, current_keys, new_keys)
+                event = ShortcutStatusChangeEvent(self, action, old_keys, new_keys)
                 for listener in self._listeners:
                     listener.shortcut_modified(event)
         else:

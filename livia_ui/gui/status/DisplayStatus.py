@@ -80,11 +80,11 @@ class DisplayStatus:
                 listener.status_message_changed(event)
 
     @property
-    def detect_objects(self) -> str:
+    def detect_objects(self) -> bool:
         return self._detect_objects
 
     @detect_objects.setter
-    def detect_objects(self, detect_objects: str):
+    def detect_objects(self, detect_objects: bool):
         if self._detect_objects != detect_objects:
             self._detect_objects = detect_objects
 
