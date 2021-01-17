@@ -107,7 +107,6 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         self._progress_bar.setAlignment(Qt.AlignCenter)
         self._progress_bar.setStyleSheet("background-color: rgb(255, 255, 255);")
         self._progress_bar.setValue(0)
-        self._progress_bar.raise_()
 
         frame_input = self._livia_window.status.video_stream_status.frame_input
         if isinstance(frame_input, SeekableFrameInput):
@@ -180,7 +179,6 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         font.setWeight(75)
         self._fps_label.setFont(font)
         self._fps_label.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
-        self._fps_label.raise_()
 
         self._fps_counter = QLCDNumber(4, panel)
         self._fps_counter.setObjectName("_top_tool_bar__fps_counter")
@@ -188,7 +186,6 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         self._fps_counter.setStyleSheet("background-color: black")
         self._fps_counter.setSmallDecimalPoint(False)
         self._fps_counter.display(0.0)
-        self._fps_counter.raise_()
 
         layout.addWidget(self._fps_label)
         layout.addWidget(self._fps_counter)

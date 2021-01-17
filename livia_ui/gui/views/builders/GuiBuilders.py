@@ -2,7 +2,7 @@ from livia_ui.gui.views.builders.BottomToolBarBuilder import BottomToolBarBuilde
 from livia_ui.gui.views.builders.DefaultBottomToolBarBuilder import DefaultBottomToolBarBuilder
 from livia_ui.gui.views.builders.DefaultMenuBarBuilder import DefaultMenuBarBuilder
 from livia_ui.gui.views.builders.DefaultStatusBarBuilder import DefaultStatusBarBuilder
-from livia_ui.gui.views.builders.DefaultToolBarBuilder import DefaultTopToolBarBuilder
+from livia_ui.gui.views.builders.DefaultTopToolBarBuilder import DefaultTopToolBarBuilder
 from livia_ui.gui.views.builders.DefaultVideoPanelBuilder import DefaultVideoPanelBuilder
 from livia_ui.gui.views.builders.MenuBarBuilder import MenuBarBuilder
 from livia_ui.gui.views.builders.StatusBarBuilder import StatusBarBuilder
