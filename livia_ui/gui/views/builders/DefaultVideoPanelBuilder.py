@@ -1,8 +1,7 @@
-from typing import Dict
+from typing import Optional
 
-from PyQt5.QtCore import Qt, pyqtSignal, QThread, pyqtSlot
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QLabel, QSizePolicy
+from PyQt5.QtCore import QThread
+from PyQt5.QtGui import QImage
 from numpy import ndarray
 
 from livia.output.CallbackFrameOutput import CallbackFrameOutput
@@ -18,16 +17,14 @@ from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStat
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeEvent import FrameProcessingStatusChangeEvent
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeListener import FrameProcessingStatusChangeListener
 from livia_ui.gui.views.builders.VideoPanelBuilder import VideoPanelBuilder
-from livia_ui.gui.views.utils import convert_image_opencv_to_qt
+from livia_ui.gui.views.utils.VideoPanel import VideoPanel
 
 
 class DefaultVideoPanelBuilder(VideoPanelBuilder):
-    _update_image_signal: pyqtSignal = pyqtSignal(QPixmap)
-    _clear_image_signal: pyqtSignal = pyqtSignal()
-
     def __init__(self):
         super().__init__(True, QThread.HighPriority)
-        self._video_label: QLabel = None
+        self._video_panel: VideoPanel = None
+        self._last_image: Optional[QImage] = None
 
         self._frame_output_callback: CallbackFrameOutput = CallbackFrameOutput(
             output_frame_callback=self._on_show_frame
@@ -35,12 +32,6 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
 
     def _build_widgets(self):
         self._parent.layout().addWidget(self._build_video_label())
-
-    def _register_signals(self) -> Dict[str, pyqtSignal]:
-        return {
-            "_update_image_signal": (self._update_image_signal, self._on_update_image_signal),
-            "_clear_image_signal": (self._clear_image_signal, self._on_clear_image_signal)
-        }
 
     def _listen_livia(self):
         self._update_detect_objects(self._livia_window.status.display_status.detect_objects)
@@ -55,7 +46,8 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
 
         self._livia_window.status.display_status.add_display_status_change_listener(
             build_listener(DisplayStatusChangeListener,
-                           detect_objects_changed=self._on_detect_objects_changed)
+                           detect_objects_changed=self._on_detect_objects_changed,
+                           resizable_changed=self._on_resizable_changed)
         )
 
         self._livia_window.status.video_stream_status.frame_processor.add_process_change_listener(
@@ -63,17 +55,11 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
                            finished=self._on_stream_finished)
         )
 
-    def _build_video_label(self):
-        self._video_label = QLabel(self._parent)
-        self._video_label.setMinimumSize(800, 600)
-        self._video_label.setContentsMargins(0, 0, 0, 0)
-        self._video_label.setAlignment(Qt.AlignCenter)
-        self._video_label.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-        self._video_label.setAutoFillBackground(True)
-        self._video_label.setText(self._translate("No image"))
-        self._video_label.setObjectName("_video_panel__video_label")
+    def _build_video_label(self) -> VideoPanel:
+        self._video_panel = VideoPanel(self._livia_window.status.display_status.resizable, self._parent)
+        self._video_panel.setObjectName("_video_panel__video_label")
 
-        return self._video_label
+        return self._video_panel
 
     def _add_frame_output_callback(self):
         frame_output = self._livia_window.status.video_stream_status.frame_output
@@ -86,14 +72,6 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
             self._livia_window.status.video_stream_status.frame_output
         )
 
-    @pyqtSlot(QPixmap)
-    def _on_update_image_signal(self, image: QPixmap):
-        self._video_label.setPixmap(image)
-
-    @pyqtSlot()
-    def _on_clear_image_signal(self):
-        self._video_label.setText(self._translate("No image"))
-
     def _on_frame_output_changed(self, event: FrameProcessingStatusChangeEvent[FrameOutput]):
         if isinstance(event.old, CompositeFrameOutput):
             event.old.remove_output(self._frame_output_callback)
@@ -102,19 +80,18 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
 
     def _on_show_frame(self, num_frame: int, frame: ndarray):
         if frame is not None:
-            image = convert_image_opencv_to_qt(frame)
-            size = self._video_label.size()
-            image = image.scaled(size.width(), size.height(), Qt.KeepAspectRatio)
-
-            self._emit_update_image_signal(QPixmap.fromImage(image))
+            self._video_panel.show_frame(frame)
         else:
-            self._emit_clear_image_signal()
+            self._video_panel.clear_frame()
 
     def _on_stream_finished(self, event: ProcessChangeEvent):
-        self._emit_clear_image_signal()
+        self._video_panel.clear_frame()
 
     def _on_detect_objects_changed(self, event: DisplayStatusChangeEvent):
         self._update_detect_objects(event.value)
+
+    def _on_resizable_changed(self, event: DisplayStatusChangeEvent):
+        self._video_panel.set_image_resizable(event.value)
 
     def _update_detect_objects(self, active: bool):
         if active:
