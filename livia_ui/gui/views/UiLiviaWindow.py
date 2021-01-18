@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PyQt5.QtWidgets import QMenuBar, QWidget, QStatusBar, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QMenuBar, QWidget, QStatusBar, QVBoxLayout
 
 from livia_ui.gui.views.builders.GuiBuilders import GuiBuilders
 from livia_ui.gui.views.utils.BorderLayout import BorderLayout

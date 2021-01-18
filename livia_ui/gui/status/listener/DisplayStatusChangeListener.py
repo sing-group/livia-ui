@@ -1,7 +1,6 @@
 from typing import Tuple
 
 from livia.process.listener.EventListener import EventListener
-
 from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
 
 

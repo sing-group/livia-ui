@@ -31,7 +31,7 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         )
 
     def _build_widgets(self):
-        self._parent.layout().addWidget(self._build_video_label())
+        self._parent.layout().addWidget(self._build_video_panel())
 
     def _listen_livia(self):
         self._update_detect_objects(self._livia_status.display_status.detect_objects)
@@ -55,7 +55,7 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
                            finished=self._on_stream_finished)
         )
 
-    def _build_video_label(self) -> VideoPanel:
+    def _build_video_panel(self) -> VideoPanel:
         self._video_panel = VideoPanel(self._livia_status.display_status.resizable, self._parent)
         self._video_panel.setObjectName("_video_panel__video_label")
 

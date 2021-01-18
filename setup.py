@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="livia-ui",
-    version="0.1.dev18",
+    version="0.1.dev19",
     author="Fernando Campos Tato, Miguel Reboiro-Jato, Daniel Glez-Peña, Florentino Fdez-Riverola, Rubén Domínguez Carbajales, Hugo López-Fdez, Alba Nogueira-Rodríguez",
     author_email="fctato@esei.uvigo.es, mrjato@uvigo.es, dgpena@uvigo.es, riverola@uvigo.es, RUBEN.DOMINGUEZ.CARBAJALES@sergas.es, hlfernandez@uvigo.es, alnogueira@uvigo.es",
     description="User interfaces for the LIVIA framework.",
@@ -14,7 +14,7 @@ setuptools.setup(
     url="https://dev.sing-group.org/gitlab/polydeep/livia-ui",
     packages=setuptools.find_packages(),
     install_requires=[
-        "livia-core==0.1.dev37",
+        "livia-core==0.1.dev39",
         "pyqt5==5.15.2"
     ],
     classifiers=[

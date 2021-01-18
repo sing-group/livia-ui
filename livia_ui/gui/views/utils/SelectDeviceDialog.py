@@ -1,7 +1,7 @@
 from PyQt5.QtCore import Qt, QCoreApplication
 from PyQt5.QtGui import QShowEvent
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout, QFormLayout, QLabel, QComboBox, \
-    QHBoxLayout, QWidget, QSizePolicy
+    QWidget, QSizePolicy
 
 from livia_ui.gui.views.utils import list_devices
 from livia_ui.gui.views.utils.DevicePanel import DevicePanel

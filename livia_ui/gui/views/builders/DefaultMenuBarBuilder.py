@@ -28,7 +28,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         super().__init__()
         self._current_path: str = str(Path.home())
 
-        self._camera_dialog: SelectDeviceDialog = None
+        self._device_dialog: SelectDeviceDialog = None
 
         self._open_file_action: QAction = None
         self._open_device_action: QAction = None
@@ -50,7 +50,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._configuration_menu: QMenu = None
 
     def _build_widgets(self):
-        self._camera_dialog = SelectDeviceDialog(self._livia_window)
+        self._device_dialog = SelectDeviceDialog(self._livia_window)
 
         self._add_file_menu()
         self._add_video_menu()
@@ -59,7 +59,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._add_configuration_menu()
 
     def _connect_widgets(self):
-        self._camera_dialog.accepted.connect(self._on_accept_device)
+        self._device_dialog.accepted.connect(self._on_accept_device)
 
         self._open_file_action.triggered.connect(self._on_open_file)
         self._open_device_action.triggered.connect(self._on_open_device)
@@ -239,7 +239,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
             self.__change_frame_input(FileFrameInput(file[0]))
 
     def _on_open_device(self):
-        self._camera_dialog.open()
+        self._device_dialog.open()
 
     def _on_quit(self):
         message = QMessageBox(self._livia_window)
@@ -253,7 +253,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
             QCoreApplication.quit()
 
     def _on_accept_device(self):
-        self.__change_frame_input(DeviceFrameInput(self._camera_dialog.get_device()))
+        self.__change_frame_input(DeviceFrameInput(self._device_dialog.get_device()))
 
     def _on_toggle_resizable(self):
         self._livia_status.display_status.toggle_resizable()

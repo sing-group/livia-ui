@@ -8,9 +8,9 @@ from livia.process.analyzer.FrameAnalyzer import FrameAnalyzer
 from livia.process.analyzer.NoChangeFrameAnalyzer import NoChangeFrameAnalyzer
 from livia.process.analyzer.listener.FrameAnalyzerChangeEvent import FrameAnalyzerChangeEvent
 from livia.process.analyzer.listener.FrameAnalyzerChangeListener import FrameAnalyzerChangeListener
-from livia.process.listener.IOChangeEvent import IOChangeEvent
 from livia.process.listener import build_listener
 from livia.process.listener.EventListeners import EventListeners
+from livia.process.listener.IOChangeEvent import IOChangeEvent
 from livia.process.listener.IOChangeListener import IOChangeListener
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeEvent import FrameProcessingStatusChangeEvent
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeListener import FrameProcessingStatusChangeListener
