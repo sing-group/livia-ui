@@ -2,17 +2,17 @@ from queue import Queue
 from threading import Lock
 from typing import Optional
 
-from PyQt5.QtCore import Qt, QCoreApplication, pyqtSignal, pyqtSlot, QThread, QSize
-from PyQt5.QtGui import QResizeEvent, QImage, QPixmap
-from PyQt5.QtWidgets import QLabel, QSizePolicy
+from PySide2.QtCore import Qt, QCoreApplication, Signal, Slot, QThread, QSize
+from PySide2.QtGui import QResizeEvent, QImage, QPixmap
+from PySide2.QtWidgets import QLabel, QSizePolicy
 from numpy import ndarray
 
 from livia_ui.gui.views.utils import convert_image_opencv_to_qt
 
 
 class _ImageProcessingThread(QThread):
-    update_image_signal: pyqtSignal = pyqtSignal(QPixmap)
-    clear_image_signal: pyqtSignal = pyqtSignal()
+    update_image_signal: Signal = Signal(QPixmap)
+    clear_image_signal: Signal = Signal()
 
     def __init__(self, resize_image: bool, size: QSize):
         super().__init__()
@@ -24,10 +24,12 @@ class _ImageProcessingThread(QThread):
 
         self._last_image: Optional[QImage] = None
 
+        self._running: bool = False
         self._lock: Lock = Lock()
 
     def run(self) -> None:
-        while True:
+        self._running = True
+        while self._running:
             image = self._queue.get(True)
 
             with self._lock:
@@ -47,6 +49,10 @@ class _ImageProcessingThread(QThread):
                 else:
                     self._last_image = None
                     self.clear_image_signal.emit()
+
+    def stop(self):
+        self._running = False
+        self._queue.put(None)
 
     def is_image_resizable(self) -> bool:
         return self._resize_image
@@ -91,16 +97,16 @@ class VideoPanel(QLabel):
 
         self._thread: _ImageProcessingThread = _ImageProcessingThread(resize_image, self.size())
         self._thread.start()
-        self._thread.setPriority(QThread.HighPriority)
+        self.moveToThread(self._thread)
 
         self._thread.update_image_signal.connect(self._on_update_image_signal)
         self._thread.clear_image_signal.connect(self._on_clear_image_signal)
 
-    @pyqtSlot(QPixmap)
+    @Slot(QPixmap)
     def _on_update_image_signal(self, image: QPixmap):
         self.setPixmap(image)
 
-    @pyqtSlot()
+    @Slot()
     def _on_clear_image_signal(self):
         self.setText(QCoreApplication.translate(self.__class__.__name__, "No image"))
 

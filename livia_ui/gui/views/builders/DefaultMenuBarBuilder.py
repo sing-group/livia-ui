@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QCoreApplication
-from PyQt5.QtWidgets import QMenu, QAction, QFileDialog, QMessageBox
+from PySide2.QtCore import Signal, Slot, QCoreApplication, Qt
+from PySide2.QtWidgets import QMenu, QAction, QFileDialog, QMessageBox
 
 from livia.input.DeviceFrameInput import DeviceFrameInput
 from livia.input.FileFrameInput import FileFrameInput
@@ -13,21 +16,34 @@ from livia.process.listener.ProcessChangeListener import ProcessChangeListener
 from livia_ui.gui.shortcuts.DefaultShortcutAction import DefaultShortcutAction
 from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
 from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
+from livia_ui.gui.views.builders.GuiBuilderFactory import GuiBuilderFactory
 from livia_ui.gui.views.builders.MenuBarBuilder import MenuBarBuilder
 from livia_ui.gui.views.utils.SelectDeviceDialog import SelectDeviceDialog
 
+if TYPE_CHECKING:
+    from livia_ui.gui.LiviaWindow import LiviaWindow
+
 
 class DefaultMenuBarBuilder(MenuBarBuilder):
-    _check_play_action_signal: pyqtSignal = pyqtSignal(bool)
-    _check_fullscreen_action_signal: pyqtSignal = pyqtSignal(bool)
-    _check_resizable_action_signal: pyqtSignal = pyqtSignal(bool)
-    _check_detect_objects_action_signal: pyqtSignal = pyqtSignal(bool)
+    _check_play_action_signal: Signal = Signal(bool)
+    _check_fullscreen_action_signal: Signal = Signal(bool)
+    _check_resizable_action_signal: Signal = Signal(bool)
+    _check_detect_objects_action_signal: Signal = Signal(bool)
 
-    def __init__(self):
-        super().__init__()
+    @staticmethod
+    def factory() -> GuiBuilderFactory[MenuBarBuilder]:
+        class DefaultGuiBuilderFactory(GuiBuilderFactory[MenuBarBuilder]):
+            def create_builder(self, *args, **kwargs) -> DefaultMenuBarBuilder:
+                return DefaultMenuBarBuilder(*args, **kwargs)
+
+        return DefaultGuiBuilderFactory()
+
+    def __init__(self, livia_window: LiviaWindow, *args, **kwargs):
+        super(DefaultMenuBarBuilder, self).__init__(livia_window, *args, **kwargs)
         self._current_path: str = str(Path.home())
 
         self._device_dialog: SelectDeviceDialog = None
+        self._select_file_dialog: QFileDialog = None
 
         self._open_file_action: QAction = None
         self._open_device_action: QAction = None
@@ -56,6 +72,11 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._add_analysis_menu()
         self._add_view_menu()
         self._add_configuration_menu()
+
+        self._select_file_dialog = QFileDialog(self._file_menu, self._translate("Open file"), self._current_path,
+                                               self._translate("Video Files (*.mp4)"))
+        self._select_file_dialog.setFileMode(QFileDialog.AnyFile)
+        self._select_file_dialog.setWindowModality(Qt.ApplicationModal)
 
     def _connect_widgets(self):
         self._device_dialog.accepted.connect(self._on_accept_device)
@@ -114,7 +135,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._quit_action.setObjectName("_menu_bar__quit_action")
         self._quit_action.setText(self._translate("Quit"))
 
-        self._file_menu = QMenu(self._parent)
+        self._file_menu = QMenu(self._parent_widget)
         self._file_menu.setObjectName("_menu_bar__file_menu")
         self._file_menu.setTitle(self._translate("File"))
         self._file_menu.addAction(self._open_file_action)
@@ -122,7 +143,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._file_menu.addSeparator()
         self._file_menu.addAction(self._quit_action)
 
-        self._parent.addAction(self._file_menu.menuAction())
+        self._parent_widget.addAction(self._file_menu.menuAction())
 
     def _add_video_menu(self):
         self._play_action = QAction(self._livia_window)
@@ -132,12 +153,12 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._play_action.setObjectName("_menu_bar__play")
         self._play_action.setText(self._translate("Play"))
 
-        self._video_menu = QMenu(self._parent)
+        self._video_menu = QMenu(self._parent_widget)
         self._video_menu.setObjectName("_menu_bar__video_menu")
         self._video_menu.setTitle(self._translate("Video"))
         self._video_menu.addAction(self._play_action)
 
-        self._parent.addAction(self._video_menu.menuAction())
+        self._parent_widget.addAction(self._video_menu.menuAction())
 
     def _add_analysis_menu(self):
         self._toggle_video_analyzer_action = QAction(self._livia_window)
@@ -152,13 +173,13 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._analyze_image_action.setObjectName("_menu_bar__analyze_image_action")
         self._analyze_image_action.setText(self._translate("Analyze image"))
 
-        self._analysis_menu = QMenu(self._parent)
+        self._analysis_menu = QMenu(self._parent_widget)
         self._analysis_menu.setObjectName("_menu_bar__analysis_menu")
         self._analysis_menu.setTitle(self._translate("Analysis"))
         self._analysis_menu.addAction(self._toggle_video_analyzer_action)
         self._analysis_menu.addAction(self._analyze_image_action)
 
-        self._parent.addAction(self._analysis_menu.menuAction())
+        self._parent_widget.addAction(self._analysis_menu.menuAction())
 
     def _add_view_menu(self):
         self._fullscreen_action = QAction(self._livia_window)
@@ -174,13 +195,13 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._resizable_action.setObjectName("_menu_bar__resizable_action")
         self._resizable_action.setText(self._translate("Resizable"))
 
-        self._view_menu = QMenu(self._parent)
+        self._view_menu = QMenu(self._parent_widget)
         self._view_menu.setObjectName("_menu_bar__view_menu")
         self._view_menu.setTitle(self._translate("View"))
         self._view_menu.addAction(self._fullscreen_action)
         self._view_menu.addAction(self._resizable_action)
 
-        self._parent.addAction(self._view_menu.menuAction())
+        self._parent_widget.addAction(self._view_menu.menuAction())
 
     def _add_configuration_menu(self):
         self._configure_shortcuts_action = QAction(self._livia_window)
@@ -198,20 +219,20 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._configure_image_analyzer_action.setObjectName("_menu_bar__configure_image_analyzer_action")
         self._configure_image_analyzer_action.setText(self._translate("Image analyzer"))
 
-        self._configuration_menu = QMenu(self._parent)
+        self._configuration_menu = QMenu(self._parent_widget)
         self._configuration_menu.setObjectName("_menu_bar__configuration_menu")
         self._configuration_menu.setTitle(self._translate("Configuration"))
         self._configuration_menu.addAction(self._configure_video_analyzer_action)
         self._configuration_menu.addAction(self._configure_image_analyzer_action)
         self._configuration_menu.addAction(self._configure_shortcuts_action)
 
-        self._parent.addAction(self._configuration_menu.menuAction())
+        self._parent_widget.addAction(self._configuration_menu.menuAction())
 
-    @pyqtSlot(bool)
+    @Slot(bool)
     def _on_check_play_action_signal(self, checked: bool):
         self._play_action.setChecked(checked)
 
-    @pyqtSlot(bool)
+    @Slot(bool)
     def _on_check_fullscreen_action_signal(self, checked: bool):
         self._fullscreen_action.setChecked(checked)
         if checked:
@@ -219,19 +240,21 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         else:
             self._livia_window.showNormal()
 
-    @pyqtSlot(bool)
+    @Slot(bool)
     def _on_check_resizable_action_signal(self, checked: bool):
         self._resizable_action.setChecked(checked)
 
-    @pyqtSlot(bool)
+    @Slot(bool)
     def _on_check_detect_objects_action_signal(self, checked: bool):
         self._toggle_video_analyzer_action.setChecked(checked)
 
     def _on_open_file(self):
+        file_filter = self._translate("Video Files (*.mp4)")
         file = QFileDialog.getOpenFileName(self._livia_window,
                                            self._translate("Open file"),
                                            self._current_path,
-                                           self._translate("Video Files (*.mp4)"))
+                                           file_filter,
+                                           file_filter)
 
         if file[0]:
             self._current_path = os.path.dirname(os.path.realpath(file[0]))

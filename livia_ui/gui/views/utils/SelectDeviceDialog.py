@@ -1,6 +1,6 @@
-from PyQt5.QtCore import Qt, QCoreApplication
-from PyQt5.QtGui import QShowEvent
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout, QFormLayout, QLabel, QComboBox, \
+from PySide2.QtCore import Qt, QCoreApplication
+from PySide2.QtGui import QShowEvent
+from PySide2.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout, QFormLayout, QLabel, QComboBox, \
     QWidget, QSizePolicy
 
 from livia_ui.gui.views.utils import list_devices

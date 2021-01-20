@@ -1,9 +1,9 @@
 import os
 from typing import Tuple
 
-from PyQt5.QtCore import Qt, QTime, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QSlider, QTimeEdit, QAbstractSpinBox
+from PySide2.QtCore import Qt, QTime, Signal, Slot
+from PySide2.QtGui import QIcon
+from PySide2.QtWidgets import QWidget, QHBoxLayout, QPushButton, QSlider, QTimeEdit, QAbstractSpinBox
 
 from livia.input.SeekableFrameInput import SeekableFrameInput
 from livia.process.FrameProcessor import FrameProcessor
@@ -15,10 +15,10 @@ from livia.process.listener.ProcessChangeListener import ProcessChangeListener
 
 
 class VideoBar(QWidget):
-    _show_frame_signal: pyqtSignal = pyqtSignal(int, int)
-    _check_frame_input_signal: pyqtSignal = pyqtSignal()
-    _enable_stop_button_signal: pyqtSignal = pyqtSignal(bool)
-    _set_play_icon_signal: pyqtSignal = pyqtSignal(QIcon)
+    _check_frame_input_signal: Signal = Signal()
+    _current_time_changed_signal: Signal = Signal(int, int)
+    _enable_stop_button_signal: Signal = Signal(bool)
+    _set_play_icon_signal: Signal = Signal(QIcon)
 
     def __init__(self, frame_processor: FrameProcessor, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -36,10 +36,10 @@ class VideoBar(QWidget):
         self._resume_icon: QIcon = QIcon(os.path.join(path, "icons", "resume.svg"))
         self._stop_icon: QIcon = QIcon(os.path.join(path, "icons", "stop.svg"))
 
-        self._play_button = QPushButton(self)
+        self._play_button = QPushButton(self._play_icon, None, self)
         self._play_button.setMinimumSize(24, 24)
 
-        self._stop_button = QPushButton(QIcon(os.path.join(path, "icons", "stop.svg")), None, self)
+        self._stop_button = QPushButton(self._stop_icon, None, self)
         self._stop_button.setMinimumSize(24, 24)
 
         self._play_bar_slider: QSlider = QSlider(Qt.Horizontal, self)
@@ -94,15 +94,7 @@ class VideoBar(QWidget):
     def _is_paused(self) -> bool:
         return self._frame_processor.is_paused()
 
-    @pyqtSlot(int, int)
-    def _on_show_frame_signal(self, time: int, frame: int):
-        if self._is_frame_input_seekable():
-            self._time_display.setTime(QTime(*VideoBar._split_time(time)))
-
-            if not self._play_bar_slider_pressed:
-                self._play_bar_slider.setValue(frame)
-
-    @pyqtSlot()
+    @Slot()
     def _on_check_frame_input_signal(self):
         frame_input = self._frame_processor.input
 
@@ -118,20 +110,9 @@ class VideoBar(QWidget):
             self._time_display.setEnabled(True)
             self.setEnabled(True)
 
-            if not self._frame_processor.has_process_change_listener(self._process_change_listener):
-                self._frame_processor.add_process_change_listener(self._process_change_listener)
-            self._show_frame_signal.connect(self._on_show_frame_signal)
-            self._enable_stop_button_signal.connect(self._on_enable_stop_button_signal)
-            self._set_play_icon_signal.connect(self._on_set_play_icon_signal)
+            self.__enable_seekable_events()
         else:
-            if self._frame_processor.has_process_change_listener(self._process_change_listener):
-                self._frame_processor.remove_process_change_listener(self._process_change_listener)
-            try:
-                self._show_frame_signal.disconnect(self._on_show_frame_signal)
-                self._enable_stop_button_signal.disconnect(self._on_enable_stop_button_signal)
-                self._set_play_icon_signal.disconnect(self._on_set_play_icon_signal)
-            except TypeError:
-                pass
+            self.__disable_seekable_events()
 
             self._play_button.setIcon(self._play_icon)
             self._time_display.setTime(QTime(0, 0))
@@ -143,10 +124,19 @@ class VideoBar(QWidget):
             self._time_display.setEnabled(False)
             self.setEnabled(False)
 
-    @pyqtSlot(bool)
+    @Slot(int, int)
+    def _on_current_time_changed_signal(self, time: int, frame: int):
+        if self._is_frame_input_seekable():
+            self._time_display.setTime(QTime(*VideoBar._split_time(time)))
+
+            if not self._play_bar_slider_pressed:
+                self._play_bar_slider.setValue(frame)
+
+    @Slot(bool)
     def _on_enable_stop_button_signal(self, enabled: bool):
         self._stop_button.setEnabled(enabled)
 
+    @Slot(QIcon)
     def _on_set_play_icon_signal(self, icon: QIcon):
         self._play_button.setIcon(icon)
 
@@ -173,7 +163,7 @@ class VideoBar(QWidget):
         frame = self._frame_processor.input.get_current_frame_index()
 
         if time != self._play_bar_slider.value():
-            self._show_frame_signal.emit(time, frame + 1)
+            self._current_time_changed_signal.emit(time, frame + 1)
 
     def _on_frame_input_changed(self, event: IOChangeEvent):
         self._check_frame_input_signal.emit()
@@ -200,6 +190,28 @@ class VideoBar(QWidget):
 
     def _is_frame_input_seekable(self) -> bool:
         return isinstance(self._frame_processor.input, SeekableFrameInput)
+
+    def __enable_seekable_events(self):
+        if not self._frame_processor.has_process_change_listener(self._process_change_listener):
+            self._frame_processor.add_process_change_listener(self._process_change_listener)
+
+        if self.receivers("_current_time_changed_signal") == 0:
+            self._current_time_changed_signal.connect(self._on_current_time_changed_signal)
+        if self.receivers("_enable_stop_button_signal") == 0:
+            self._enable_stop_button_signal.connect(self._on_enable_stop_button_signal)
+        if self.receivers("_set_play_icon_signal") == 0:
+            self._set_play_icon_signal.connect(self._on_set_play_icon_signal)
+
+    def __disable_seekable_events(self):
+        if self._frame_processor.has_process_change_listener(self._process_change_listener):
+            self._frame_processor.remove_process_change_listener(self._process_change_listener)
+
+        if self.receivers("_current_time_changed_signal") > 0:
+            self._current_time_changed_signal.disconnect(self._on_current_time_changed_signal)
+        if self.receivers("_enable_stop_button_signal") > 0:
+            self._enable_stop_button_signal.disconnect(self._on_enable_stop_button_signal)
+        if self.receivers("_set_play_icon_signal") > 0:
+            self._set_play_icon_signal.disconnect(self._on_set_play_icon_signal)
 
     @staticmethod
     def _split_time(time: int) -> Tuple[int, int, int, int]:

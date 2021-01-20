@@ -34,7 +34,8 @@ class FrameProcessingStatus:
         analyzer = AsyncAnalyzerFrameProcessor(frame_input, frame_output, live_frame_analyzer)
 
         analyzer.add_io_change_listener(
-            build_listener(IOChangeListener, input_changed=self._on_input_changed,
+            build_listener(IOChangeListener,
+                           input_changed=self._on_input_changed,
                            output_changed=self._on_output_changed)
         )
         analyzer.add_frame_analyzer_change_listener(

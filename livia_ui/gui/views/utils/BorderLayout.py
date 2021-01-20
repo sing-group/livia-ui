@@ -41,8 +41,8 @@
 
 from typing import List, Optional
 
-from PyQt5.QtCore import QRect, QSize, Qt
-from PyQt5.QtWidgets import (QLayout, QWidgetItem, QWidget)
+from PySide2.QtCore import QRect, QSize, Qt
+from PySide2.QtWidgets import (QLayout, QWidgetItem, QWidget)
 
 
 class ItemWrapper(object):

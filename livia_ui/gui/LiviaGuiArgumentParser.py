@@ -1,9 +1,10 @@
 from argparse import ArgumentParser, FileType
 
-from PyQt5.QtWidgets import QApplication
+from PySide2.QtWidgets import QApplication
 
 from livia.input.FileFrameInput import FileFrameInput
 from livia.input.NoFrameInput import NoFrameInput
+from livia_ui.gui import LIVIA_GUI_LOGGER
 from livia_ui.gui.LiviaWindow import LiviaWindow
 from livia_ui.gui.status.DisplayStatus import DisplayStatus
 from livia_ui.gui.status.FrameProcessingStatus import FrameProcessingStatus
@@ -32,14 +33,22 @@ class LiviaGuiArgumentParser(ArgumentParser):
                                    DisplayStatus(window_size, status_message="Welcome to LIVIA"),
                                    ShortcutStatus())
 
-        app = QApplication([LiviaWindow])
+        self._app = QApplication(["LiviaWindow"])
 
-        main_window = LiviaWindow(livia_status)
-        main_window.setWindowTitle("LIVIA")
+        self._livia_window = LiviaWindow(livia_status)
+        self._livia_window.setWindowTitle("LIVIA")
 
-        main_window.adjustSize()
-        main_window.move(app.desktop().screen().rect().center() - main_window.rect().center())  # Centers window
+        self._livia_window.adjustSize()
 
-        main_window.show()
+        try:
+            window_center = self._livia_window.rect().center()
+            screen_center = self._app.desktop().screen().rect().center()
+            self._livia_window.move(screen_center - window_center)  # Centers window
+        except RuntimeError:
+            LIVIA_GUI_LOGGER.exception("Window could not be centered in the screen")
 
-        app.exit(app.exec_())
+        self._livia_window.show()
+
+        livia_status.video_stream_status.frame_processor.start()
+
+        self._app.exit(self._app.exec_())

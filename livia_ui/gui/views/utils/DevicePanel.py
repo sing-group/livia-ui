@@ -1,16 +1,16 @@
 from threading import Condition
 from typing import Optional
 
-from PyQt5.QtCore import QThread, pyqtSignal, Qt, pyqtSlot, QCoreApplication
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy
+from PySide2.QtCore import QThread, Signal, Qt, Slot, QCoreApplication
+from PySide2.QtGui import QImage, QPixmap
+from PySide2.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy
 from cv2 import VideoCapture, cv2
 
 from livia_ui.gui.views.utils import convert_image_opencv_to_qt
 
 
 class _VideoThread(QThread):
-    image_signal: pyqtSignal = pyqtSignal(QImage)
+    image_signal: Signal = Signal(QImage)
 
     def __init__(self, device_index: Optional[int] = None, autoplay: bool = False):
         super().__init__()
@@ -101,7 +101,7 @@ class DevicePanel(QWidget):
 
         self.destroyed.connect(self._thread.stop)
 
-    @pyqtSlot(QImage)
+    @Slot(QImage)
     def _on_change_image_signal(self, image: QImage):
         if image:
             image = image.scaled(self._image_label.width(), self._image_label.height(), Qt.KeepAspectRatio)

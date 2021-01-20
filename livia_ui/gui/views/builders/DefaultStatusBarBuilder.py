@@ -1,7 +1,10 @@
-import os
+from __future__ import annotations
 
-from PyQt5.QtCore import Qt, QSize, QTime, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QLabel, QToolButton, QTimeEdit, QAbstractSpinBox, QDateTimeEdit, \
+import os
+from typing import TYPE_CHECKING
+
+from PySide2.QtCore import Qt, QSize, QTime, Signal, Slot
+from PySide2.QtWidgets import QLabel, QToolButton, QTimeEdit, QAbstractSpinBox, QDateTimeEdit, \
     QWidget, QHBoxLayout
 
 from livia.process.listener import build_listener
@@ -9,14 +12,26 @@ from livia.process.listener.ProcessChangeEvent import ProcessChangeEvent
 from livia.process.listener.ProcessChangeListener import ProcessChangeListener
 from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
 from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
+from livia_ui.gui.views.builders.GuiBuilderFactory import GuiBuilderFactory
 from livia_ui.gui.views.builders.StatusBarBuilder import StatusBarBuilder
+
+if TYPE_CHECKING:
+    from livia_ui.gui.LiviaWindow import LiviaWindow
 
 
 class DefaultStatusBarBuilder(StatusBarBuilder):
-    _update_status_signal: pyqtSignal = pyqtSignal(str)
+    _update_status_signal: Signal = Signal(str)
 
-    def __init__(self):
-        super().__init__()
+    @staticmethod
+    def factory() -> GuiBuilderFactory[StatusBarBuilder]:
+        class DefaultGuiBuilderFactory(GuiBuilderFactory[StatusBarBuilder]):
+            def create_builder(self, *args, **kwargs) -> DefaultStatusBarBuilder:
+                return DefaultStatusBarBuilder(*args, **kwargs)
+
+        return DefaultGuiBuilderFactory()
+
+    def __init__(self, livia_window: LiviaWindow, *args, **kwargs):
+        super(DefaultStatusBarBuilder, self).__init__(livia_window, *args, **kwargs)
 
         self._status_label: QLabel = None
         self._recording_panel: QWidget = None
@@ -27,8 +42,8 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
     def _build_widgets(self):
         self._build_status_label()
 
-        self._parent.addWidget(self._status_label)
-        self._parent.addPermanentWidget(self._build_recording_panel())
+        self._parent_widget.addWidget(self._status_label)
+        self._parent_widget.addPermanentWidget(self._build_recording_panel())
 
     def _connect_signals(self):
         self._update_status_signal.connect(self._on_update_status_signal)
@@ -96,7 +111,7 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
 
         return self._recording_panel
 
-    @pyqtSlot(str)
+    @Slot(str)
     def _on_update_status_signal(self, status: str):
         self._status_label.setText(self._translate(status))
 

@@ -1,6 +1,6 @@
 from typing import Optional, Dict
 
-from PyQt5.QtGui import QImage
+from PySide2.QtGui import QImage
 from cv2 import VideoCapture, cv2
 from numpy import ndarray
 

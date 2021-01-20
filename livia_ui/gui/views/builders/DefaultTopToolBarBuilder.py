@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from collections import deque
 from time import time
-from typing import Deque
+from typing import Deque, TYPE_CHECKING
 
-from PyQt5.QtCore import QLocale, Qt, pyqtSlot, pyqtSignal
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QWidget, QProgressBar, QLCDNumber, QLabel, QDoubleSpinBox, QAbstractSpinBox, QHBoxLayout, \
+from PySide2.QtCore import QLocale, Qt, Slot, Signal
+from PySide2.QtGui import QFont
+from PySide2.QtWidgets import QWidget, QProgressBar, QLCDNumber, QLabel, QDoubleSpinBox, QAbstractSpinBox, QHBoxLayout, \
     QSizePolicy
 
 from livia.input.FrameInput import FrameInput
@@ -20,24 +22,36 @@ from livia.process.listener.IOChangeListener import IOChangeListener
 from livia.process.listener.ProcessChangeEvent import ProcessChangeEvent
 from livia.process.listener.ProcessChangeListener import ProcessChangeListener
 from livia_ui.gui import LIVIA_GUI_LOGGER
+from livia_ui.gui.views.builders.GuiBuilderFactory import GuiBuilderFactory
 from livia_ui.gui.views.builders.TopToolBarBuilder import TopToolBarBuilder
 from livia_ui.gui.views.utils.BorderLayout import BorderLayout
+
+if TYPE_CHECKING:
+    from livia_ui.gui.LiviaWindow import LiviaWindow
 
 _FRAMES_DEQUE_SIZE: int = 100
 _MIN_FRAMES_IN_DEQUE: int = 5
 
 
 class DefaultTopToolBarBuilder(TopToolBarBuilder):
-    _update_progress_signal: pyqtSignal = pyqtSignal(int)
-    _update_fps_signal: pyqtSignal = pyqtSignal(float)
-    _show_threshold_signal: pyqtSignal = pyqtSignal(float, float, float, float)
-    _hide_threshold_signal: pyqtSignal = pyqtSignal()
-    _change_threshold_signal: pyqtSignal = pyqtSignal(float)
-    _show_progress_signal: pyqtSignal = pyqtSignal(int, int)
-    _hide_progress_signal: pyqtSignal = pyqtSignal()
+    _update_progress_signal: Signal = Signal(int)
+    _update_fps_signal: Signal = Signal(float)
+    _show_threshold_signal: Signal = Signal(float, float, float, float)
+    _hide_threshold_signal: Signal = Signal()
+    _change_threshold_signal: Signal = Signal(float)
+    _show_progress_signal: Signal = Signal(int, int)
+    _hide_progress_signal: Signal = Signal()
 
-    def __init__(self):
-        super().__init__()
+    @staticmethod
+    def factory() -> GuiBuilderFactory[TopToolBarBuilder]:
+        class DefaultGuiBuilderFactory(GuiBuilderFactory[TopToolBarBuilder]):
+            def create_builder(self, *args, **kwargs) -> DefaultTopToolBarBuilder:
+                return DefaultTopToolBarBuilder(*args, **kwargs)
+
+        return DefaultGuiBuilderFactory()
+
+    def __init__(self, livia_window: LiviaWindow, *args, **kwargs):
+        super(DefaultTopToolBarBuilder, self).__init__(livia_window, *args, **kwargs)
         self._last_frames_time: Deque[float] = deque([], _FRAMES_DEQUE_SIZE)
 
         self._progress_bar: QProgressBar = None
@@ -52,8 +66,8 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         )
 
     def _build_widgets(self):
-        layout = BorderLayout(self._parent, 0)
-        self._parent.setMinimumHeight(24)
+        layout = BorderLayout(self._parent_widget, 0)
+        self._parent_widget.setMinimumHeight(24)
 
         layout.addWidget(self._build_widget_progress_bar(), BorderLayout.West)
         layout.addWidget(self._build_threshold_panel(), BorderLayout.Center)
@@ -100,7 +114,7 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         self._hide_progress_signal.disconnect(self._on_hide_progress_signal)
 
     def _build_widget_progress_bar(self) -> QWidget:
-        self._progress_bar = QProgressBar(self._parent)
+        self._progress_bar = QProgressBar(self._parent_widget)
         self._progress_bar.setObjectName("_top_tool_bar__progress_bar")
         self._progress_bar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self._progress_bar.setAlignment(Qt.AlignCenter)
@@ -117,7 +131,7 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         return self._progress_bar
 
     def _build_threshold_panel(self) -> QWidget:
-        self._threshold_panel = QWidget(self._parent)
+        self._threshold_panel = QWidget(self._parent_widget)
         layout = QHBoxLayout(self._threshold_panel)
         layout.setAlignment(Qt.AlignCenter)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -131,7 +145,7 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         font.setWeight(75)
         self._threshold_label.setFont(font)
 
-        self._threshold_spin = QDoubleSpinBox(self._parent)
+        self._threshold_spin = QDoubleSpinBox(self._parent_widget)
         self._threshold_spin.setObjectName("_top_tool_bar__threshold_spin")
         font = QFont()
         font.setPointSize(10)
@@ -165,7 +179,7 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         return self._threshold_panel
 
     def _build_widget_fps_counter(self) -> QWidget:
-        panel = QWidget(self._parent)
+        panel = QWidget(self._parent_widget)
         layout = QHBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -191,15 +205,15 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
 
         return panel
 
-    @pyqtSlot(int)
+    @Slot(int)
     def _on_update_progress_signal(self, value: int):
         self._progress_bar.setValue(value)
 
-    @pyqtSlot(float)
+    @Slot(float)
     def _on_update_fps_signal(self, fps: float):
         self._fps_counter.display(fps)
 
-    @pyqtSlot(float, float, float, float)
+    @Slot(float, float, float, float)
     def _on_show_threshold_signal(self, threshold: float, min_threshold: float, max_threshold: float,
                                   threshold_step: float):
         self._threshold_spin.setValue(threshold)
@@ -208,22 +222,22 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         self._threshold_spin.setSingleStep(threshold_step)
         self._threshold_panel.show()
 
-    @pyqtSlot()
+    @Slot()
     def _on_hide_threshold_signal(self):
         self._threshold_panel.hide()
 
-    @pyqtSlot(int, int)
+    @Slot(int, int)
     def _on_show_progress_signal(self, progress: int, maximum: int):
         self._progress_bar.setValue(progress)
         self._progress_bar.setMaximum(maximum)
         self._progress_bar.show()
 
-    @pyqtSlot(float)
+    @Slot(float)
     def _on_change_threshold_signal(self, threshold: float):
         if threshold != self._threshold_spin.value():
             self._threshold_spin.setValue(threshold)
 
-    @pyqtSlot()
+    @Slot()
     def _on_hide_progress_signal(self):
         self._progress_bar.hide()
 

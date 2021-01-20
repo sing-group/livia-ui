@@ -1,7 +1,9 @@
-from typing import Optional
+from __future__ import annotations
 
-from PyQt5.QtGui import QImage
-from PyQt5.QtWidgets import QVBoxLayout
+from typing import Optional, TYPE_CHECKING
+
+from PySide2.QtGui import QImage
+from PySide2.QtWidgets import QVBoxLayout
 from numpy import ndarray
 
 from livia.output.CallbackFrameOutput import CallbackFrameOutput
@@ -16,13 +18,25 @@ from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusC
 from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeEvent import FrameProcessingStatusChangeEvent
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeListener import FrameProcessingStatusChangeListener
+from livia_ui.gui.views.builders.GuiBuilderFactory import GuiBuilderFactory
 from livia_ui.gui.views.builders.VideoPanelBuilder import VideoPanelBuilder
 from livia_ui.gui.views.utils.VideoPanel import VideoPanel
 
+if TYPE_CHECKING:
+    from livia_ui.gui.LiviaWindow import LiviaWindow
+
 
 class DefaultVideoPanelBuilder(VideoPanelBuilder):
-    def __init__(self):
-        super().__init__()
+    @staticmethod
+    def factory() -> GuiBuilderFactory[VideoPanelBuilder]:
+        class DefaultGuiBuilderFactory(GuiBuilderFactory[VideoPanelBuilder]):
+            def create_builder(self, *args, **kwargs) -> DefaultVideoPanelBuilder:
+                return DefaultVideoPanelBuilder(*args, **kwargs)
+
+        return DefaultGuiBuilderFactory()
+
+    def __init__(self, livia_window: LiviaWindow, *args, **kwargs):
+        super(DefaultVideoPanelBuilder, self).__init__(livia_window, *args, **kwargs)
         self._video_panel: VideoPanel = None
         self._last_image: Optional[QImage] = None
 
@@ -31,9 +45,9 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         )
 
     def _build_widgets(self):
-        layout = QVBoxLayout(self._parent)
+        layout = QVBoxLayout(self._parent_widget)
 
-        self._parent.setContentsMargins(0, 0, 0, 0)
+        self._parent_widget.setContentsMargins(0, 0, 0, 0)
         layout.setContentsMargins(0, 0, 0, 0)
 
         layout.addWidget(self._build_video_panel())
@@ -61,7 +75,7 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         )
 
     def _build_video_panel(self) -> VideoPanel:
-        self._video_panel = VideoPanel(self._livia_status.display_status.resizable, self._parent)
+        self._video_panel = VideoPanel(self._livia_status.display_status.resizable, self._parent_widget)
         self._video_panel.setObjectName("_video_panel__video_label")
 
         return self._video_panel

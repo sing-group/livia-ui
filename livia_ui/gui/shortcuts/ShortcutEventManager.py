@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, Callable, Tuple
 from typing import Union, Optional, Set
 
-from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import QShortcut
+from PySide2.QtGui import QKeySequence
+from PySide2.QtWidgets import QShortcut
 
 from livia.process.listener.EventListeners import EventListeners
 from livia_ui.gui.shortcuts.ShortcutAction import ShortcutAction
