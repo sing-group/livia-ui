@@ -18,6 +18,7 @@ from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusC
 from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
 from livia_ui.gui.views.builders.GuiBuilderFactory import GuiBuilderFactory
 from livia_ui.gui.views.builders.MenuBarBuilder import MenuBarBuilder
+from livia_ui.gui.views.utils.AnalyzeImageDialog import AnalyzeImageDialog
 from livia_ui.gui.views.utils.SelectDeviceDialog import SelectDeviceDialog
 
 if TYPE_CHECKING:
@@ -29,6 +30,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     _check_fullscreen_action_signal: Signal = Signal(bool)
     _check_resizable_action_signal: Signal = Signal(bool)
     _check_detect_objects_action_signal: Signal = Signal(bool)
+    _enable_analyze_image_action_signal: Signal = Signal(bool)
 
     @staticmethod
     def factory() -> GuiBuilderFactory[MenuBarBuilder]:
@@ -43,7 +45,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._current_path: str = str(Path.home())
 
         self._device_dialog: SelectDeviceDialog = None
-        self._select_file_dialog: QFileDialog = None
+        self._analyze_image_dialog: AnalyzeImageDialog = None
 
         self._open_file_action: QAction = None
         self._open_device_action: QAction = None
@@ -66,17 +68,13 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
     def _build_widgets(self):
         self._device_dialog = SelectDeviceDialog(self._livia_window)
+        self._analyze_image_dialog = AnalyzeImageDialog(self._livia_status.video_stream_status, self._livia_window)
 
         self._add_file_menu()
         self._add_video_menu()
         self._add_analysis_menu()
         self._add_view_menu()
         self._add_configuration_menu()
-
-        self._select_file_dialog = QFileDialog(self._file_menu, self._translate("Open file"), self._current_path,
-                                               self._translate("Video Files (*.mp4)"))
-        self._select_file_dialog.setFileMode(QFileDialog.AnyFile)
-        self._select_file_dialog.setWindowModality(Qt.ApplicationModal)
 
     def _connect_widgets(self):
         self._device_dialog.accepted.connect(self._on_accept_device)
@@ -88,12 +86,14 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._fullscreen_action.triggered.connect(self._on_toggle_fullscreen)
         self._toggle_video_analyzer_action.triggered.connect(self._on_toggle_detect_objects)
         self._play_action.triggered.connect(self._on_toggle_play)
+        self._analyze_image_action.triggered.connect(self._on_analyze_image)
 
     def _connect_signals(self):
         self._check_play_action_signal.connect(self._on_check_play_action_signal)
         self._check_fullscreen_action_signal.connect(self._on_check_play_action_signal)
         self._check_resizable_action_signal.connect(self._on_check_fullscreen_action_signal)
         self._check_detect_objects_action_signal.connect(self._on_check_detect_objects_action_signal)
+        self._enable_analyze_image_action_signal.connect(self._on_enable_analyze_image_action_signal)
 
     def _listen_livia(self):
         self._livia_status.display_status.add_display_status_change_listener(
@@ -118,6 +118,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._check_fullscreen_action_signal.disconnect(self._on_check_play_action_signal)
         self._check_resizable_action_signal.disconnect(self._on_check_fullscreen_action_signal)
         self._check_detect_objects_action_signal.disconnect(self._on_check_detect_objects_action_signal)
+        self._enable_analyze_image_action_signal.disconnect(self._on_enable_analyze_image_action_signal)
 
     def _add_file_menu(self):
         self._open_file_action = QAction(self._livia_window)
@@ -248,6 +249,13 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _on_check_detect_objects_action_signal(self, checked: bool):
         self._toggle_video_analyzer_action.setChecked(checked)
 
+    @Slot(bool)
+    def _on_enable_analyze_image_action_signal(self, enabled: bool):
+        self._analyze_image_action.setEnabled(enabled)
+
+    def _on_analyze_image(self):
+        self._analyze_image_dialog.open()
+
     def _on_open_file(self):
         file_filter = self._translate("Video Files (*.mp4)")
         file = QFileDialog.getOpenFileName(self._livia_window,
@@ -308,14 +316,20 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _on_video_started(self, event: ProcessChangeEvent):
         if not self._play_action.isChecked():
             self._check_play_action_signal.emit(True)
+        if not self._analyze_image_action.isEnabled():
+            self._enable_analyze_image_action_signal.emit(True)
 
     def _on_video_stopped(self, event: ProcessChangeEvent):
         if self._play_action.isChecked():
             self._check_play_action_signal.emit(False)
+        if self._analyze_image_action.isEnabled():
+            self._enable_analyze_image_action_signal.emit(False)
 
     def _on_video_finished(self, event: ProcessChangeEvent):
         if self._play_action.isChecked():
             self._check_play_action_signal.emit(False)
+        if self._analyze_image_action.isEnabled():
+            self._enable_analyze_image_action_signal.emit(False)
 
     def _on_video_paused(self, event: ProcessChangeEvent):
         if self._play_action.isChecked():
