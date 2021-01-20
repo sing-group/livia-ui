@@ -1,6 +1,7 @@
 from typing import Dict
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import QVBoxLayout
 
 from livia.input.FrameInput import FrameInput
 from livia.input.SeekableFrameInput import SeekableFrameInput
@@ -15,12 +16,16 @@ class DefaultBottomToolBarBuilder(BottomToolBarBuilder):
     _change_video_bar_visibility_signal: pyqtSignal = pyqtSignal(bool)
 
     def __init__(self):
-        super().__init__(True)
+        super().__init__()
 
         self._video_bar: VideoBar = None
 
     def _build_widgets(self):
-        self._parent.layout().addWidget(self._build_video_bar())
+        self._parent.setContentsMargins(0, 0, 0, 0)
+        layout = QVBoxLayout(self._parent)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        layout.addWidget(self._build_video_bar())
 
     def _register_signals(self) -> Dict[str, pyqtSignal]:
         return {
@@ -37,7 +42,7 @@ class DefaultBottomToolBarBuilder(BottomToolBarBuilder):
 
     def _after_init(self):
         visible = isinstance(self._livia_status.video_stream_status.frame_input, SeekableFrameInput)
-        self._emit_change_video_bar_visibility_signal(visible)
+        self._change_video_bar_visibility_signal.emit(visible)
 
     def _build_video_bar(self):
         frame_processor = self._livia_status.video_stream_status.frame_processor
@@ -52,4 +57,4 @@ class DefaultBottomToolBarBuilder(BottomToolBarBuilder):
             self._video_bar.setVisible(visible)
 
     def _on_frame_input_changed(self, event: FrameProcessingStatusChangeEvent[FrameInput]):
-        self._emit_change_video_bar_visibility_signal(isinstance(event.new, SeekableFrameInput))
+        self._change_video_bar_visibility_signal.emit(isinstance(event.new, SeekableFrameInput))

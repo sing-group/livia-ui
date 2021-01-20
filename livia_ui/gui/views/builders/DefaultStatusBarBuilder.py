@@ -1,5 +1,4 @@
 import os
-from typing import Dict, Tuple, Callable
 
 from PyQt5.QtCore import Qt, QSize, QTime, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QLabel, QToolButton, QTimeEdit, QAbstractSpinBox, QDateTimeEdit, \
@@ -31,11 +30,8 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
         self._parent.addWidget(self._status_label)
         self._parent.addPermanentWidget(self._build_recording_panel())
 
-    def _register_signals(self) -> Dict[str, Tuple[pyqtSignal, Callable[..., None]]]:
-        return {
-            "_update_status_signal":
-                (self._update_status_signal, self._on_update_status_signal)
-        }
+    def _connect_signals(self):
+        self._update_status_signal.connect(self._on_update_status_signal)
 
     def _listen_livia(self):
         self._livia_status.video_stream_status.frame_processor.add_process_change_listener(
@@ -51,6 +47,9 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
         self._livia_status.display_status.add_display_status_change_listener(
             build_listener(DisplayStatusChangeListener, status_message_changed=self._on_status_message_change)
         )
+
+    def _disconnect_signals(self):
+        self._update_status_signal.disconnect(self._on_update_status_signal)
 
     def _build_status_label(self):
         self._status_label = QLabel()
@@ -117,4 +116,4 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
         self._livia_status.display_status.status_message = "Video finished"
 
     def _on_status_message_change(self, event: DisplayStatusChangeEvent[str]):
-        self._emit_update_status_signal(event.value)
+        self._update_status_signal.emit(event.value)

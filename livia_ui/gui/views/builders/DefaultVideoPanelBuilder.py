@@ -1,7 +1,7 @@
 from typing import Optional
 
-from PyQt5.QtCore import QThread
 from PyQt5.QtGui import QImage
+from PyQt5.QtWidgets import QVBoxLayout
 from numpy import ndarray
 
 from livia.output.CallbackFrameOutput import CallbackFrameOutput
@@ -22,7 +22,7 @@ from livia_ui.gui.views.utils.VideoPanel import VideoPanel
 
 class DefaultVideoPanelBuilder(VideoPanelBuilder):
     def __init__(self):
-        super().__init__(True, QThread.HighPriority)
+        super().__init__()
         self._video_panel: VideoPanel = None
         self._last_image: Optional[QImage] = None
 
@@ -31,7 +31,12 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         )
 
     def _build_widgets(self):
-        self._parent.layout().addWidget(self._build_video_panel())
+        layout = QVBoxLayout(self._parent)
+
+        self._parent.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        layout.addWidget(self._build_video_panel())
 
     def _listen_livia(self):
         self._update_detect_objects(self._livia_status.display_status.detect_objects)
@@ -79,10 +84,7 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         self._add_frame_output_callback()
 
     def _on_show_frame(self, num_frame: int, frame: ndarray):
-        if frame is not None:
-            self._video_panel.show_frame(frame)
-        else:
-            self._video_panel.clear_frame()
+        self._video_panel.show_frame(frame)
 
     def _on_stream_finished(self, event: ProcessChangeEvent):
         self._video_panel.clear_frame()

@@ -1,9 +1,11 @@
-from PyQt5.QtCore import QThread
-from PyQt5.QtWidgets import QMenuBar
+from PyQt5.QtWidgets import QMenuBar, QWidget
 
 from livia_ui.gui.views.builders.GuiBuilder import GuiBuilder
 
 
 class MenuBarBuilder(GuiBuilder[QMenuBar]):
-    def __init__(self, independent_thread: bool = False, thread_priority: int = QThread.NormalPriority):
-        super().__init__(independent_thread, thread_priority)
+    def __init__(self):
+        super().__init__()
+
+    def _create_parent(self, parent: QWidget) -> QMenuBar:
+        return QMenuBar(parent)

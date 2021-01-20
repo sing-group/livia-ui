@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PyQt5.QtWidgets import QMenuBar, QWidget, QStatusBar, QVBoxLayout
+from PyQt5.QtWidgets import QMenuBar, QWidget, QStatusBar
 
 from livia_ui.gui.views.builders.GuiBuilders import GuiBuilders
 from livia_ui.gui.views.utils.BorderLayout import BorderLayout
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 class UiLiviaWindow(object):
     def __init__(self):
-        self._main_window: LiviaWindow = None
+        self._livia_window: LiviaWindow = None
         self._menu_bar: QMenuBar = None
         self._top_tool_bar: QStatusBar = None
         self._video_panel: QWidget = None
@@ -21,57 +21,31 @@ class UiLiviaWindow(object):
         self._central_panel: QWidget = None
         self._status_bar: QStatusBar = None
 
-    def setup_ui(self, main_window: LiviaWindow, builders: GuiBuilders):
-        main_window.setObjectName("MainWindow")
-        main_window.setEnabled(True)
+    def setup_ui(self, livia_window: LiviaWindow, builders: GuiBuilders):
+        self._livia_window = livia_window
 
-        self._main_window = main_window
+        self._menu_bar = builders.menu_bar_builder.build(self._livia_window, self._livia_window)
+        self._status_bar = builders.status_bar_builder.build(self._livia_window, self._livia_window)
 
-        self._menu_bar = QMenuBar(main_window)
-        self._menu_bar.setObjectName("_menu_bar")
+        self._central_panel = QWidget(self._livia_window)
+        central_layout = BorderLayout(self._central_panel, 0)
+        self._central_panel.setLayout(central_layout)
 
-        self._status_bar = QStatusBar(main_window)
-        self._status_bar.setObjectName("_status_bar")
-
-        self._central_panel = QWidget(main_window)
-        self._central_panel.setObjectName("_central_panel")
-        central_layout = BorderLayout(self._central_panel)
-        central_layout.setContentsMargins(0, 0, 0, 0)
-
-        self._top_tool_bar = QWidget(self._central_panel)
-        self._top_tool_bar.setMinimumHeight(24)
-        self._top_tool_bar.setObjectName("_top_tool_bar")
-        BorderLayout(self._top_tool_bar)
-
-        self._video_panel = QWidget(self._central_panel)
-        self._video_panel.setObjectName("_video_panel")
-        self._video_panel.setContentsMargins(0, 0, 0, 0)
-        video_panel_layout = QVBoxLayout(self._video_panel)
-        video_panel_layout.setContentsMargins(0, 0, 0, 0)
-
-        self._bottom_tool_bar = QWidget(self._central_panel)
-        self._bottom_tool_bar.setObjectName("_bottom_tool_bar")
-        self._bottom_tool_bar.setContentsMargins(0, 0, 0, 0)
-        bottom_tool_bar_layout = QVBoxLayout(self._bottom_tool_bar)
-        bottom_tool_bar_layout.setContentsMargins(0, 0, 0, 0)
+        self._top_tool_bar = builders.top_tool_bar_builder.build(self._livia_window, self._central_panel)
+        self._video_panel = builders.video_panel_builder.build(self._livia_window, self._central_panel)
+        self._bottom_tool_bar = builders.bottom_tool_bar_builder.build(self._livia_window, self._central_panel)
 
         central_layout.addWidget(self._top_tool_bar, BorderLayout.North)
         central_layout.addWidget(self._video_panel, BorderLayout.Center)
         central_layout.addWidget(self._bottom_tool_bar, BorderLayout.South)
 
-        main_window.setMenuBar(self._menu_bar)
-        main_window.setCentralWidget(self._central_panel)
-        main_window.setStatusBar(self._status_bar)
-
-        builders.menu_bar_builder.build(main_window, self._menu_bar)
-        builders.top_tool_bar_builder.build(main_window, self._top_tool_bar)
-        builders.video_panel_builder.build(main_window, self._video_panel)
-        builders.bottom_tool_bar_builder.build(main_window, self._bottom_tool_bar)
-        builders.status_bar_builder.build(main_window, self._status_bar)
+        livia_window.setMenuBar(self._menu_bar)
+        livia_window.setCentralWidget(self._central_panel)
+        livia_window.setStatusBar(self._status_bar)
 
     @property
     def main_window(self):
-        return self._main_window
+        return self._livia_window
 
     @property
     def menu_bar(self) -> QMenuBar:
