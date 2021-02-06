@@ -2,9 +2,9 @@ from queue import Queue
 from threading import Lock
 from typing import Optional
 
-from PySide2.QtCore import Qt, QCoreApplication, Signal, Slot, QThread, QSize
-from PySide2.QtGui import QResizeEvent, QImage, QPixmap
-from PySide2.QtWidgets import QLabel, QSizePolicy
+from PySide2.QtCore import Qt, Signal, Slot, QThread, QSize, QCoreApplication
+from PySide2.QtGui import QResizeEvent, QImage, QPainter, QPaintEvent, QPixmap
+from PySide2.QtWidgets import QSizePolicy, QWidget, QStyleOption
 from numpy import ndarray
 
 from livia_ui.gui.views.utils import convert_image_opencv_to_qt
@@ -41,7 +41,7 @@ class _ImageProcessingThread(QThread):
                     i_size = self._last_image.size()
                     if self._resize_image and self._size != i_size:
                         resized_image = self._last_image.scaled(self._size.width(), self._size.height(),
-                                                                Qt.KeepAspectRatio)
+                                                                Qt.KeepAspectRatio, Qt.SmoothTransformation)
                     else:
                         resized_image = self._last_image
 
@@ -85,30 +85,53 @@ class _ImageProcessingThread(QThread):
         self._queue.put(self._last_image)
 
 
-class VideoPanel(QLabel):
+class VideoPanel(QWidget):
     def __init__(self, resize_image: bool = True, *args, **kwargs):
         super(VideoPanel, self).__init__(*args, **kwargs)
 
-        self.setMinimumSize(800, 600)
-        self.setAlignment(Qt.AlignCenter)
+        self._painter: QPainter = QPainter()
+        self._image: Optional[QPixmap] = None
+        self._resize_image: bool = resize_image
+
+        self._no_image_text: str = QCoreApplication.translate(self.__class__.__name__, "No image")
+
         self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-        self.setAutoFillBackground(True)
-        self.setText(QCoreApplication.translate(self.__class__.__name__, "No image"))
 
         self._thread: _ImageProcessingThread = _ImageProcessingThread(resize_image, self.size())
         self._thread.start()
+        self._thread.setPriority(QThread.HighPriority)
         self.moveToThread(self._thread)
 
         self._thread.update_image_signal.connect(self._on_update_image_signal)
         self._thread.clear_image_signal.connect(self._on_clear_image_signal)
 
+    def paintEvent(self, event: QPaintEvent):
+        rect = event.rect()
+        event.accept()
+
+        options: QStyleOption = QStyleOption()
+        options.initFrom(self)
+
+        self._painter.begin(self)
+        self._painter.fillRect(rect, Qt.black)
+        if self._image:
+            image_rect = self._image.rect()
+            image_rect.moveCenter(rect.center())
+            self._painter.drawPixmap(image_rect, self._image)
+        else:
+            self._painter.setPen(Qt.white)
+            self._painter.drawText(rect.center(), self._no_image_text)
+        self._painter.end()
+
     @Slot(QPixmap)
-    def _on_update_image_signal(self, image: QPixmap):
-        self.setPixmap(image)
+    def _on_update_image_signal(self, image: QImage):
+        self._image = image
+        self.repaint()
 
     @Slot()
     def _on_clear_image_signal(self):
-        self.setText(QCoreApplication.translate(self.__class__.__name__, "No image"))
+        self._image = None
+        self.repaint()
 
     def resizeEvent(self, event: QResizeEvent):
         self._thread.set_image_size(event.size())
