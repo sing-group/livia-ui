@@ -4,11 +4,13 @@ from PySide2.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout, QFormLayou
     QWidget, QSizePolicy
 
 from livia_ui.gui.views.utils import list_devices
+from livia_ui.gui.views.utils.Device import Device
 from livia_ui.gui.views.utils.DevicePanel import DevicePanel
+from livia_ui.gui.views.utils.DeviceProvider import DeviceProvider
 
 
 class SelectDeviceDialog(QDialog):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, device_provider: DeviceProvider, *args, **kwargs):
         super(SelectDeviceDialog, self).__init__(*args, **kwargs)
         self.setWindowTitle(QCoreApplication.translate(self.__class__.__name__, "Select device"))
         self.setWindowModality(Qt.ApplicationModal)
@@ -16,8 +18,8 @@ class SelectDeviceDialog(QDialog):
         form_panel = QWidget()
         form_layout = QFormLayout()
         self._device_combo_box: QComboBox = QComboBox()
-        for index, device in list_devices().items():
-            self._device_combo_box.addItem(device, index)
+        self._device_provider: DeviceProvider = device_provider
+
         form_layout.addRow(QLabel(QCoreApplication.translate(self.__class__.__name__, "Device:")),
                            self._device_combo_box)
         form_panel.setLayout(form_layout)
@@ -47,10 +49,11 @@ class SelectDeviceDialog(QDialog):
         super(SelectDeviceDialog, self).hideEvent(event)
 
     def showEvent(self, event: QShowEvent):
+        self._list_devices()
         self._device_panel.play()
         super(SelectDeviceDialog, self).showEvent(event)
 
-    def get_device(self) -> int:
+    def get_device(self) -> Device:
         return self._device_combo_box.currentData()
 
     def _on_device_changed(self, index: int):
@@ -61,3 +64,8 @@ class SelectDeviceDialog(QDialog):
 
     def _on_play(self):
         self._device_panel.play()
+
+    def _list_devices(self):
+        self._device_combo_box.clear()
+        for device in self._device_provider.list():
+            self._device_combo_box.addItem(device.name, device)

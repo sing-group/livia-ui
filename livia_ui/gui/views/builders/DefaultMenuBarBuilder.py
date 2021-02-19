@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide2.QtCore import Signal, Slot, QCoreApplication, Qt
+from PySide2.QtCore import Signal, Slot, QCoreApplication
 from PySide2.QtWidgets import QMenu, QAction, QFileDialog, QMessageBox
 
 from livia.input.DeviceFrameInput import DeviceFrameInput
@@ -19,6 +19,8 @@ from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStat
 from livia_ui.gui.views.builders.GuiBuilderFactory import GuiBuilderFactory
 from livia_ui.gui.views.builders.MenuBarBuilder import MenuBarBuilder
 from livia_ui.gui.views.utils.AnalyzeImageDialog import AnalyzeImageDialog
+from livia_ui.gui.views.utils.DefaultDeviceProvider import DefaultDeviceProvider
+from livia_ui.gui.views.utils.DeviceProvider import DeviceProvider
 from livia_ui.gui.views.utils.SelectDeviceDialog import SelectDeviceDialog
 
 if TYPE_CHECKING:
@@ -67,7 +69,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._configuration_menu: QMenu = None
 
     def _build_widgets(self):
-        self._device_dialog = SelectDeviceDialog(self._livia_window)
+        self._device_dialog = SelectDeviceDialog(self._device_provider(), self._livia_window)
         self._analyze_image_dialog = AnalyzeImageDialog(self._livia_status.video_stream_status, self._livia_window)
 
         self._add_file_menu()
@@ -228,6 +230,9 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._configuration_menu.addAction(self._configure_shortcuts_action)
 
         self._parent_widget.addAction(self._configuration_menu.menuAction())
+
+    def _device_provider(self) -> DeviceProvider:
+        return DefaultDeviceProvider()
 
     @Slot(bool)
     def _on_check_play_action_signal(self, checked: bool):

@@ -4,20 +4,22 @@ from typing import Optional
 from PySide2.QtCore import QThread, Signal, Qt, Slot, QCoreApplication
 from PySide2.QtGui import QImage, QPixmap
 from PySide2.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy
-from cv2 import VideoCapture, cv2
+from cv2 import VideoCapture
+import cv2
 
 from livia_ui.gui.views.utils import convert_image_opencv_to_qt
+from livia_ui.gui.views.utils.Device import Device
 
 
 class _VideoThread(QThread):
     image_signal: Signal = Signal(QImage)
 
-    def __init__(self, device_index: Optional[int] = None, autoplay: bool = False):
+    def __init__(self, device: Optional[Device] = None, autoplay: bool = False):
         super().__init__()
         self._device: VideoCapture = VideoCapture()
         self._device.setExceptionMode(True)
 
-        self._device_index: Optional[int] = device_index
+        self._device_data: Optional[Device] = device
 
         self._finished: bool = False
         self._play: bool = autoplay
@@ -29,10 +31,10 @@ class _VideoThread(QThread):
                 if self._finished:
                     break
 
-                if self._play and self._device_index is not None:
+                if self._play and self._device_data is not None:
                     try:
                         if not self._device.isOpened():
-                            self._device.open(self._device_index)
+                            self._device.open(self._device_data.index, self._device_data.api)
 
                         ret, image = self._device.read()
                         if ret:
@@ -73,15 +75,16 @@ class _VideoThread(QThread):
                         self._device.release()
                     self._condition.notify()
 
-    def change_device(self, device_index: Optional[int]):
+    def change_device(self, device: Optional[Device]):
         with self._condition:
-            if device_index is not None:
-                self._device.open(device_index)
+            if device.index is not None:
+                self._device.open(device.index, device.api)
+                self._device_data = device
             self._condition.notify()
 
 
 class DevicePanel(QWidget):
-    def __init__(self, device_index: Optional[int] = None, autoplay: bool = True):
+    def __init__(self, device: Optional[Device] = None, autoplay: bool = True):
         super().__init__()
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -94,7 +97,7 @@ class DevicePanel(QWidget):
 
         self.setLayout(layout)
 
-        self._thread: _VideoThread = _VideoThread(device_index, autoplay)
+        self._thread: _VideoThread = _VideoThread(device, autoplay)
         self._thread.image_signal.connect(self._on_change_image_signal)
         self._thread.start()
         self._thread.setPriority(QThread.LowPriority)
@@ -110,8 +113,8 @@ class DevicePanel(QWidget):
             self._image_label.setPixmap(None)
             self._image_label.setText(QCoreApplication.translate(self.__class__.__name__, "No image"))
 
-    def change_device(self, device_index: int):
-        self._thread.change_device(device_index)
+    def change_device(self, device: Device):
+        self._thread.change_device(device)
 
     def stop(self):
         self._thread.stop()

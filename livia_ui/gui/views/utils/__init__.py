@@ -1,7 +1,8 @@
 from typing import Optional, Dict
 
 from PySide2.QtGui import QImage
-from cv2 import VideoCapture, cv2
+import cv2
+from cv2 import VideoCapture
 from numpy import ndarray
 
 from livia_ui.gui import LIVIA_GUI_LOGGER
@@ -31,7 +32,7 @@ def list_devices() -> Dict[int, str]:
     devices = {}
     while True:
         try:
-            capture.open(index)
+            capture.open(index, cv2.CAP_VFW)
             devices[index] = f"Device {index}"
             capture.release()
             index += 1

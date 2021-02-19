@@ -1,4 +1,4 @@
-from argparse import ArgumentParser, FileType
+from argparse import ArgumentParser, FileType, Namespace
 
 from PySide2.QtWidgets import QApplication
 
@@ -14,13 +14,14 @@ from livia_ui.gui.status.ShortcutStatus import ShortcutStatus
 
 class LiviaGuiArgumentParser(ArgumentParser):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(LiviaGuiArgumentParser, self).__init__(*args, **kwargs)
+
+        self._app: QApplication = None
+        self._livia_window: LiviaWindow = None
 
         self.add_argument("--open", dest="open", type=FileType('r'), help="Opens a file when application is started")
 
-    def parse_and_execute(self):
-        args = self.parse_args()
-
+    def _build_status(self, args: Namespace) -> LiviaStatus:
         if args.open:
             input_frame = FileFrameInput(args.open.name)
             frame_size = input_frame.get_frame_size()
@@ -29,15 +30,22 @@ class LiviaGuiArgumentParser(ArgumentParser):
             frame_size = (800, 600)
 
         window_size = (frame_size[0] + 50, frame_size[1] + 100)
-        livia_status = LiviaStatus(FrameProcessingStatus(input_frame),
-                                   DisplayStatus(window_size, status_message="Welcome to LIVIA"),
-                                   ShortcutStatus())
+        return LiviaStatus(FrameProcessingStatus(input_frame),
+                           DisplayStatus(window_size, status_message="Welcome to LIVIA"),
+                           ShortcutStatus())
+
+    def _build_window(self, livia_status: LiviaStatus) -> LiviaWindow:
+        livia_window = LiviaWindow(livia_status)
+        livia_window.setWindowTitle("LIVIA")
+
+        return livia_window
+
+    def parse_and_execute(self):
+        args = self.parse_args()
 
         self._app = QApplication(["LiviaWindow"])
 
-        self._livia_window = LiviaWindow(livia_status)
-        self._livia_window.setWindowTitle("LIVIA")
-
+        self._livia_window = self._build_window(self._build_status(args))
         self._livia_window.adjustSize()
 
         try:
@@ -49,6 +57,6 @@ class LiviaGuiArgumentParser(ArgumentParser):
 
         self._livia_window.show()
 
-        livia_status.video_stream_status.frame_processor.start()
+        self._livia_window.status.video_stream_status.frame_processor.start()
 
         self._app.exit(self._app.exec_())
