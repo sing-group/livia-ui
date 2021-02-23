@@ -9,6 +9,7 @@ from numpy import ndarray
 from livia.output.CallbackFrameOutput import CallbackFrameOutput
 from livia.output.CompositeFrameOutput import CompositeFrameOutput
 from livia.output.FrameOutput import FrameOutput
+from livia.process.analyzer.FrameAnalyzer import FrameAnalyzer
 from livia.process.analyzer.FrameByFrameSquareFrameAnalyzer import FrameByFrameSquareFrameAnalyzer
 from livia.process.analyzer.NoChangeFrameAnalyzer import NoChangeFrameAnalyzer
 from livia.process.listener import build_listener
@@ -39,12 +40,15 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         super(DefaultVideoPanelBuilder, self).__init__(livia_window, *args, **kwargs)
         self._video_panel: VideoPanel = None
         self._last_image: Optional[QImage] = None
+        self._live_frame_analyzer: FrameAnalyzer = None
 
         self._frame_output_callback: CallbackFrameOutput = CallbackFrameOutput(
             output_frame_callback=self._on_show_frame
         )
 
     def _build_widgets(self):
+        self._live_frame_analyzer = self._livia_window.status.video_stream_status.live_frame_analyzer
+
         layout = QVBoxLayout(self._parent_widget)
 
         self._parent_widget.setContentsMargins(0, 0, 0, 0)
@@ -111,7 +115,7 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
 
     def _update_detect_objects(self, active: bool):
         if active:
-            # TODO Change FrameByFrameSquareFrameAnalyzer for user configured analyzer when setup display is integrated
-            self._livia_status.video_stream_status.live_frame_analyzer = FrameByFrameSquareFrameAnalyzer()
+            # TODO Change for user configured analyzer when setup display is integrated
+            self._livia_status.video_stream_status.live_frame_analyzer = self._live_frame_analyzer
         else:
             self._livia_status.video_stream_status.live_frame_analyzer = NoChangeFrameAnalyzer()

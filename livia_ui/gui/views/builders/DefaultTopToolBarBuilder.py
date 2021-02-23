@@ -267,7 +267,8 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
 
         if isinstance(old_analyzer, HasThreshold):
             was_threshold_visible = True
-            old_analyzer.remove_threshold_change_listener(self._threshold_change_listener)
+            if old_analyzer.has_threshold_change_listener(self._threshold_change_listener):
+                old_analyzer.remove_threshold_change_listener(self._threshold_change_listener)
         else:
             was_threshold_visible = False
 

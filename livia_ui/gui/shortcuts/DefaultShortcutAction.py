@@ -7,6 +7,7 @@ class DefaultShortcutAction(ShortcutAction):
     QUIT = 0
     OPEN_FILE = 1
     OPEN_DEVICE = 2
+    RELEASE_DEVICE = 3
     TOGGLE_PLAY = 1001
     TOGGLE_FULLSCREEN = 2001
     TOGGLE_RESIZABLE = 2002
@@ -24,6 +25,7 @@ DEFAULT_SHORTCUTS: Dict[ShortcutAction, str] = {
     DefaultShortcutAction.QUIT: "Ctrl+Q",
     DefaultShortcutAction.OPEN_FILE: "Ctrl+O",
     DefaultShortcutAction.OPEN_DEVICE: "Ctrl+D",
+    DefaultShortcutAction.RELEASE_DEVICE: "Ctrl+R",
     DefaultShortcutAction.TOGGLE_PLAY: "P",
     DefaultShortcutAction.TOGGLE_FULLSCREEN: "F",
     DefaultShortcutAction.TOGGLE_RESIZABLE: "R",

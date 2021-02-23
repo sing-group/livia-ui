@@ -10,6 +10,7 @@ from PySide2.QtWidgets import QMenu, QAction, QFileDialog, QMessageBox
 from livia.input.DeviceFrameInput import DeviceFrameInput
 from livia.input.FileFrameInput import FileFrameInput
 from livia.input.FrameInput import FrameInput
+from livia.input.NoFrameInput import NoFrameInput
 from livia.process.listener import build_listener
 from livia.process.listener.ProcessChangeEvent import ProcessChangeEvent
 from livia.process.listener.ProcessChangeListener import ProcessChangeListener
@@ -83,6 +84,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         self._open_file_action.triggered.connect(self._on_open_file)
         self._open_device_action.triggered.connect(self._on_open_device)
+        self._release_device_action.triggered.connect(self._on_release_device)
         self._quit_action.triggered.connect(self._on_quit)
         self._resizable_action.triggered.connect(self._on_toggle_resizable)
         self._fullscreen_action.triggered.connect(self._on_toggle_fullscreen)
@@ -133,6 +135,11 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._open_device_action.setObjectName("_menu_bar__open_device_action")
         self._open_device_action.setText(self._translate("Open device"))
 
+        self._release_device_action = QAction(self._livia_window)
+        self._release_device_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.RELEASE_DEVICE))
+        self._release_device_action.setObjectName("_menu_bar__release_device_action")
+        self._release_device_action.setText(self._translate("Release device"))
+
         self._quit_action = QAction(self._livia_window)
         self._quit_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.QUIT))
         self._quit_action.setObjectName("_menu_bar__quit_action")
@@ -143,6 +150,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._file_menu.setTitle(self._translate("File"))
         self._file_menu.addAction(self._open_file_action)
         self._file_menu.addAction(self._open_device_action)
+        self._file_menu.addAction(self._release_device_action)
         self._file_menu.addSeparator()
         self._file_menu.addAction(self._quit_action)
 
@@ -165,7 +173,8 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
     def _add_analysis_menu(self):
         self._toggle_video_analyzer_action = QAction(self._livia_window)
-        self._toggle_video_analyzer_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_VIDEO_ANALYSIS))
+        self._toggle_video_analyzer_action.setShortcuts(
+            self._get_shortcuts(DefaultShortcutAction.TOGGLE_VIDEO_ANALYSIS))
         self._toggle_video_analyzer_action.setCheckable(True)
         self._toggle_video_analyzer_action.setChecked(self._livia_status.display_status.detect_objects)
         self._toggle_video_analyzer_action.setObjectName("_menu_bar__toggle_video_analyzer_action")
@@ -275,6 +284,10 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
     def _on_open_device(self):
         self._device_dialog.open()
+
+    def _on_release_device(self):
+        self._livia_status.video_stream_status.frame_processor.stop()
+        self._livia_status.video_stream_status.frame_input = NoFrameInput()
 
     def _on_quit(self):
         message = QMessageBox(self._livia_window)
