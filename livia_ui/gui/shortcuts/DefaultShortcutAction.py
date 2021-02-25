@@ -20,6 +20,15 @@ class DefaultShortcutAction(ShortcutAction):
     def get_default_shortcut(self) -> str:
         return DEFAULT_SHORTCUTS[self]
 
+    def get_label(self):
+        return self.name[0] + self.name[1:].lower().replace("_", " ")
+
+    def get_order(self) -> int:
+        return self.value
+
+    def get_group(self) -> str:
+        return GROUPS[self]
+
 
 DEFAULT_SHORTCUTS: Dict[ShortcutAction, str] = {
     DefaultShortcutAction.QUIT: "Ctrl+Q",
@@ -34,4 +43,19 @@ DEFAULT_SHORTCUTS: Dict[ShortcutAction, str] = {
     DefaultShortcutAction.CONFIGURE_VIDEO_ANALYZER: "Alt+V",
     DefaultShortcutAction.CONFIGURE_IMAGE_ANALYZER: "Alt+I",
     DefaultShortcutAction.CONFIGURE_SHORTCUTS: "Alt+S"
+}
+
+GROUPS: Dict[ShortcutAction, str] = {
+    DefaultShortcutAction.QUIT: "File",
+    DefaultShortcutAction.OPEN_FILE: "File",
+    DefaultShortcutAction.OPEN_DEVICE: "File",
+    DefaultShortcutAction.RELEASE_DEVICE: "File",
+    DefaultShortcutAction.TOGGLE_PLAY: "Video",
+    DefaultShortcutAction.TOGGLE_FULLSCREEN: "View",
+    DefaultShortcutAction.TOGGLE_RESIZABLE: "View",
+    DefaultShortcutAction.TOGGLE_VIDEO_ANALYSIS: "Analysis",
+    DefaultShortcutAction.ANALYZE_IMAGE: "Analysis",
+    DefaultShortcutAction.CONFIGURE_VIDEO_ANALYZER: "Configuration",
+    DefaultShortcutAction.CONFIGURE_IMAGE_ANALYZER: "Configuration",
+    DefaultShortcutAction.CONFIGURE_SHORTCUTS: "Configuration"
 }
