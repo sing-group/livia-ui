@@ -271,7 +271,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._analyze_image_dialog.open()
 
     def _on_open_file(self):
-        file_filter = self._translate("Video Files (*.mp4)")
+        file_filter = self._translate("Video Files (*.mp4 *.avi)")
         file = QFileDialog.getOpenFileName(self._livia_window,
                                            self._translate("Open file"),
                                            self._current_path,
