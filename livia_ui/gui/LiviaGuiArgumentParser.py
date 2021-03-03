@@ -1,3 +1,4 @@
+import os
 from argparse import ArgumentParser, FileType, Namespace
 
 from PySide2.QtWidgets import QApplication
@@ -6,10 +7,14 @@ from livia.input.FileFrameInput import FileFrameInput
 from livia.input.NoFrameInput import NoFrameInput
 from livia_ui.gui import LIVIA_GUI_LOGGER
 from livia_ui.gui.LiviaWindow import LiviaWindow
+from livia_ui.gui.configuration.ConfigurationStorage import ConfigurationStorage
 from livia_ui.gui.status.DisplayStatus import DisplayStatus
 from livia_ui.gui.status.FrameProcessingStatus import FrameProcessingStatus
 from livia_ui.gui.status.LiviaStatus import LiviaStatus
 from livia_ui.gui.status.ShortcutStatus import ShortcutStatus
+
+FILE_NAME = "configuration.xml"
+FILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, FILE_NAME))
 
 
 class LiviaGuiArgumentParser(ArgumentParser):
@@ -18,6 +23,7 @@ class LiviaGuiArgumentParser(ArgumentParser):
 
         self._app: QApplication = None
         self._livia_window: LiviaWindow = None
+        self._configuration_storage: ConfigurationStorage = None
 
         self.add_argument("--open", dest="open", type=FileType('r'), help="Opens a file when application is started")
 
@@ -45,8 +51,12 @@ class LiviaGuiArgumentParser(ArgumentParser):
 
         self._app = QApplication(["LiviaWindow"])
 
-        self._livia_window = self._build_window(self._build_status(args))
+        livia_status = self._build_status(args)
+
+        self._livia_window = self._build_window(livia_status)
         self._livia_window.adjustSize()
+
+        self._configuration_storage = ConfigurationStorage(livia_status, FILE_PATH)
 
         try:
             window_center = self._livia_window.rect().center()

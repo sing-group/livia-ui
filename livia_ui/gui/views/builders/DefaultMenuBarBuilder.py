@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Tuple
 
 from PySide2.QtCore import Signal, Slot, QCoreApplication
 from PySide2.QtWidgets import QMenu, QAction, QFileDialog, QMessageBox
@@ -14,12 +14,16 @@ from livia.input.NoFrameInput import NoFrameInput
 from livia.process.listener import build_listener
 from livia.process.listener.ProcessChangeEvent import ProcessChangeEvent
 from livia.process.listener.ProcessChangeListener import ProcessChangeListener
+from livia_ui.gui import LIVIA_GUI_LOGGER
 from livia_ui.gui.shortcuts.DefaultShortcutAction import DefaultShortcutAction
 from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
 from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
+from livia_ui.gui.status.listener.ShortcutStatusChangeEvent import ShortcutStatusChangeEvent
+from livia_ui.gui.status.listener.ShortcutStatusChangeListener import ShortcutStatusChangeListener
 from livia_ui.gui.views.builders.GuiBuilderFactory import GuiBuilderFactory
 from livia_ui.gui.views.builders.MenuBarBuilder import MenuBarBuilder
 from livia_ui.gui.views.utils.AnalyzeImageDialog import AnalyzeImageDialog
+from livia_ui.gui.views.utils.ConfigureShortcutsDialog import ConfigureShortcutsDialog
 from livia_ui.gui.views.utils.DefaultDeviceProvider import DefaultDeviceProvider
 from livia_ui.gui.views.utils.DeviceProvider import DeviceProvider
 from livia_ui.gui.views.utils.SelectDeviceDialog import SelectDeviceDialog
@@ -46,9 +50,11 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def __init__(self, livia_window: LiviaWindow, *args, **kwargs):
         super(DefaultMenuBarBuilder, self).__init__(livia_window, *args, **kwargs)
         self._current_path: str = str(Path.home())
+        self._shortcuts_widgets: Dict[QAction, Tuple[str, ...]] = {}
 
         self._device_dialog: SelectDeviceDialog = None
         self._analyze_image_dialog: AnalyzeImageDialog = None
+        self._configure_shortcuts_dialog: ConfigureShortcutsDialog = None
 
         self._open_file_action: QAction = None
         self._open_device_action: QAction = None
@@ -72,6 +78,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _build_widgets(self):
         self._device_dialog = SelectDeviceDialog(self._device_provider(), self._livia_window)
         self._analyze_image_dialog = AnalyzeImageDialog(self._livia_status.video_stream_status, self._livia_window)
+        self._configure_shortcuts_dialog = ConfigureShortcutsDialog(self._livia_status.shortcut_status)
 
         self._add_file_menu()
         self._add_video_menu()
@@ -91,6 +98,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._toggle_video_analyzer_action.triggered.connect(self._on_toggle_detect_objects)
         self._play_action.triggered.connect(self._on_toggle_play)
         self._analyze_image_action.triggered.connect(self._on_analyze_image)
+        self._configure_shortcuts_action.triggered.connect(self._on_configure_shortcuts)
 
     def _connect_signals(self):
         self._check_play_action_signal.connect(self._on_check_play_action_signal)
@@ -116,6 +124,12 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
                            resumed=self._on_video_resumed
                            )
         )
+        self._livia_status.shortcut_status.add_shortcut_configuration_change_listener(
+            build_listener(ShortcutStatusChangeListener,
+                           shortcut_modified=self._on_modified_shortcut,
+                           shortcut_removed=self._on_removed_shortcut
+                           )
+        )
 
     def _disconnect_signals(self):
         self._check_play_action_signal.disconnect(self._on_check_play_action_signal)
@@ -124,24 +138,45 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._check_detect_objects_action_signal.disconnect(self._on_check_detect_objects_action_signal)
         self._enable_analyze_image_action_signal.disconnect(self._on_enable_analyze_image_action_signal)
 
+    def _on_modified_shortcut(self, event: ShortcutStatusChangeEvent):
+        for widget in self._shortcuts_widgets:
+            if widget.shortcut().toString() == event.old_keys[0]:
+                widget.setShortcuts(event.new_keys)
+                self._shortcuts_widgets[widget] = event.new_keys
+                break
+
+    def _on_removed_shortcut(self, event: ShortcutStatusChangeEvent):
+        for widget in self._shortcuts_widgets:
+            if widget.shortcut().toString() == event.old_keys[0]:
+                widget.setShortcuts(event.new_keys)
+                widget.setEnabled(False)
+                self._shortcuts_widgets[widget] = event.new_keys
+                LIVIA_GUI_LOGGER.warning("Menu Action '" + widget.objectName() +
+                                         "' disabled caused by 'removed_shortcut' event.")
+                break
+
     def _add_file_menu(self):
         self._open_file_action = QAction(self._livia_window)
         self._open_file_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.OPEN_FILE))
+        self._shortcuts_widgets[self._open_file_action] = self._get_shortcuts(DefaultShortcutAction.OPEN_FILE)
         self._open_file_action.setObjectName("_menu_bar__open_file_action")
         self._open_file_action.setText(self._translate("Open file"))
 
         self._open_device_action = QAction(self._livia_window)
         self._open_device_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.OPEN_DEVICE))
+        self._shortcuts_widgets[self._open_device_action] = self._get_shortcuts(DefaultShortcutAction.OPEN_DEVICE)
         self._open_device_action.setObjectName("_menu_bar__open_device_action")
         self._open_device_action.setText(self._translate("Open device"))
 
         self._release_device_action = QAction(self._livia_window)
         self._release_device_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.RELEASE_DEVICE))
+        self._shortcuts_widgets[self._release_device_action] = self._get_shortcuts(DefaultShortcutAction.RELEASE_DEVICE)
         self._release_device_action.setObjectName("_menu_bar__release_device_action")
         self._release_device_action.setText(self._translate("Release device"))
 
         self._quit_action = QAction(self._livia_window)
         self._quit_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.QUIT))
+        self._shortcuts_widgets[self._quit_action] = self._get_shortcuts(DefaultShortcutAction.QUIT)
         self._quit_action.setObjectName("_menu_bar__quit_action")
         self._quit_action.setText(self._translate("Quit"))
 
@@ -159,6 +194,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _add_video_menu(self):
         self._play_action = QAction(self._livia_window)
         self._play_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_PLAY))
+        self._shortcuts_widgets[self._play_action] = self._get_shortcuts(DefaultShortcutAction.TOGGLE_PLAY)
         self._play_action.setCheckable(True)
         self._play_action.setChecked(self._livia_status.video_stream_status.frame_processor.is_running())
         self._play_action.setObjectName("_menu_bar__play")
@@ -175,6 +211,8 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._toggle_video_analyzer_action = QAction(self._livia_window)
         self._toggle_video_analyzer_action.setShortcuts(
             self._get_shortcuts(DefaultShortcutAction.TOGGLE_VIDEO_ANALYSIS))
+        self._shortcuts_widgets[self._toggle_video_analyzer_action] = self._get_shortcuts(
+            DefaultShortcutAction.TOGGLE_VIDEO_ANALYSIS)
         self._toggle_video_analyzer_action.setCheckable(True)
         self._toggle_video_analyzer_action.setChecked(self._livia_status.display_status.detect_objects)
         self._toggle_video_analyzer_action.setObjectName("_menu_bar__toggle_video_analyzer_action")
@@ -182,6 +220,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
         self._analyze_image_action = QAction(self._livia_window)
         self._analyze_image_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.ANALYZE_IMAGE))
+        self._shortcuts_widgets[self._analyze_image_action] = self._get_shortcuts(DefaultShortcutAction.ANALYZE_IMAGE)
         self._analyze_image_action.setObjectName("_menu_bar__analyze_image_action")
         self._analyze_image_action.setText(self._translate("Analyze image"))
 
@@ -196,12 +235,14 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _add_view_menu(self):
         self._fullscreen_action = QAction(self._livia_window)
         self._fullscreen_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_FULLSCREEN))
+        self._shortcuts_widgets[self._fullscreen_action] = self._get_shortcuts(DefaultShortcutAction.TOGGLE_FULLSCREEN)
         self._fullscreen_action.setCheckable(True)
         self._fullscreen_action.setChecked(self._livia_status.display_status.fullscreen)
         self._fullscreen_action.setObjectName("_menu_bar__fullscreen_action")
         self._fullscreen_action.setText(self._translate("Fullscreen"))
         self._resizable_action = QAction(self._livia_window)
         self._resizable_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_RESIZABLE))
+        self._shortcuts_widgets[self._resizable_action] = self._get_shortcuts(DefaultShortcutAction.TOGGLE_RESIZABLE)
         self._resizable_action.setCheckable(True)
         self._resizable_action.setChecked(self._livia_status.display_status.resizable)
         self._resizable_action.setObjectName("_menu_bar__resizable_action")
@@ -218,16 +259,22 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _add_configuration_menu(self):
         self._configure_shortcuts_action = QAction(self._livia_window)
         self._configure_shortcuts_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.CONFIGURE_SHORTCUTS))
+        self._shortcuts_widgets[self._configure_shortcuts_action] = self._get_shortcuts(
+            DefaultShortcutAction.CONFIGURE_SHORTCUTS)
         self._configure_shortcuts_action.setObjectName("_menu_bar__configure_shortcuts_action")
         self._configure_shortcuts_action.setText(self._translate("Shortcuts"))
         self._configure_video_analyzer_action = QAction(self._livia_window)
         self._configure_video_analyzer_action.setShortcuts(
             self._get_shortcuts(DefaultShortcutAction.CONFIGURE_VIDEO_ANALYZER))
+        self._shortcuts_widgets[self._configure_video_analyzer_action] = self._get_shortcuts(
+            DefaultShortcutAction.CONFIGURE_VIDEO_ANALYZER)
         self._configure_video_analyzer_action.setObjectName("_menu_bar__configure_video_analyzer_action")
         self._configure_video_analyzer_action.setText(self._translate("Video analyzer"))
         self._configure_image_analyzer_action = QAction(self._livia_window)
         self._configure_image_analyzer_action.setShortcuts(
             self._get_shortcuts(DefaultShortcutAction.CONFIGURE_IMAGE_ANALYZER))
+        self._shortcuts_widgets[self._configure_image_analyzer_action] = self._get_shortcuts(
+            DefaultShortcutAction.CONFIGURE_IMAGE_ANALYZER)
         self._configure_image_analyzer_action.setObjectName("_menu_bar__configure_image_analyzer_action")
         self._configure_image_analyzer_action.setText(self._translate("Image analyzer"))
 
@@ -356,6 +403,9 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _on_video_resumed(self, event: ProcessChangeEvent):
         if not self._play_action.isChecked():
             self._check_play_action_signal.emit(True)
+
+    def _on_configure_shortcuts(self):
+        self._configure_shortcuts_dialog.open()
 
     def __change_frame_input(self, frame_input: FrameInput):
         status = self._livia_status.video_stream_status

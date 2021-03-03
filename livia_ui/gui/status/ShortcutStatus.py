@@ -1,4 +1,4 @@
-from typing import Dict, Set, Union, Tuple
+from typing import Dict, Set, Union, Tuple, List
 
 from livia.process.listener.EventListeners import EventListeners
 from livia_ui.gui.shortcuts.DefaultShortcutAction import DefaultShortcutAction
@@ -12,7 +12,7 @@ from livia_ui.gui.status.listener.ShortcutStatusChangeListener import ShortcutSt
 class ShortcutStatus:
     def __init__(self,
                  action_keys: Dict[ShortcutAction, Set[str]] =
-                    {action: {action.get_default_shortcut()} for action in DefaultShortcutAction}):
+                 {action: {action.get_default_shortcut()} for action in DefaultShortcutAction}):
         self._action_keys: Dict[ShortcutAction, Set[str]] = action_keys
 
         self._listeners: EventListeners[ShortcutStatusChangeListener] = EventListeners[
@@ -24,6 +24,18 @@ class ShortcutStatus:
 
     def get_keys(self, action: ShortcutAction) -> Tuple[str, ...]:
         return tuple(self._action_keys[action])
+
+    def get_groups(self) -> List[str]:
+        unique_groups = []
+        for action in self._action_keys:
+            if action.get_group() not in unique_groups:
+                unique_groups.append(action.get_group())
+        return unique_groups
+
+    def get_actions_by_group(self, group: str) -> Dict[ShortcutAction, Tuple[str, ...]]:
+        return {action: tuple(keys) for action, keys in sorted(self._action_keys.items(),
+                                                               key=lambda item: item[0].get_order())
+                if action.get_group() == group}
 
     def add_action(self, action: ShortcutAction, keys: Union[Set[str], str] = set()):
         if self.has_action(action):

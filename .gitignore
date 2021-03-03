@@ -15,3 +15,6 @@ check.sh
 # General
 bak
 *.bak
+
+# Application
+configuration.xml
