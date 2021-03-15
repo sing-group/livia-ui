@@ -23,7 +23,8 @@ from livia_ui.gui.status.listener.ShortcutStatusChangeListener import ShortcutSt
 from livia_ui.gui.views.builders.GuiBuilderFactory import GuiBuilderFactory
 from livia_ui.gui.views.builders.MenuBarBuilder import MenuBarBuilder
 from livia_ui.gui.views.utils.AnalyzeImageDialog import AnalyzeImageDialog
-from livia_ui.gui.views.utils.ConfigureShortcutsDialog import ConfigureShortcutsDialog
+from livia_ui.gui.configuration.ConfigureShortcutsDialog import ConfigureShortcutsDialog
+from livia_ui.gui.configuration.ConfigureVideoAnalyzerDialog import ConfigureVideoAnalyzerDialog
 from livia_ui.gui.views.utils.DefaultDeviceProvider import DefaultDeviceProvider
 from livia_ui.gui.views.utils.DeviceProvider import DeviceProvider
 from livia_ui.gui.views.utils.SelectDeviceDialog import SelectDeviceDialog
@@ -55,6 +56,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._device_dialog: SelectDeviceDialog = None
         self._analyze_image_dialog: AnalyzeImageDialog = None
         self._configure_shortcuts_dialog: ConfigureShortcutsDialog = None
+        self._configure_video_analyzer_dialog: ConfigureVideoAnalyzerDialog = None
 
         self._open_file_action: QAction = None
         self._open_device_action: QAction = None
@@ -79,6 +81,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._device_dialog = SelectDeviceDialog(self._device_provider(), self._livia_window)
         self._analyze_image_dialog = AnalyzeImageDialog(self._livia_status.video_stream_status, self._livia_window)
         self._configure_shortcuts_dialog = ConfigureShortcutsDialog(self._livia_status.shortcut_status)
+        self._configure_video_analyzer_dialog = ConfigureVideoAnalyzerDialog(self._livia_status.video_stream_status)
 
         self._add_file_menu()
         self._add_video_menu()
@@ -99,6 +102,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._play_action.triggered.connect(self._on_toggle_play)
         self._analyze_image_action.triggered.connect(self._on_analyze_image)
         self._configure_shortcuts_action.triggered.connect(self._on_configure_shortcuts)
+        self._configure_video_analyzer_action.triggered.connect(self._on_configure_analyzers)
 
     def _connect_signals(self):
         self._check_play_action_signal.connect(self._on_check_play_action_signal)
@@ -406,6 +410,9 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
 
     def _on_configure_shortcuts(self):
         self._configure_shortcuts_dialog.open()
+
+    def _on_configure_analyzers(self):
+        self._configure_video_analyzer_dialog.open()
 
     def __change_frame_input(self, frame_input: FrameInput):
         status = self._livia_status.video_stream_status

@@ -76,7 +76,7 @@ class ConfigureShortcutsDialog(QDialog):
 
     def accept(self):
         self._apply()
-        super().accept()
+        super(ConfigureShortcutsDialog, self).accept()
 
     def _apply(self):
         for action in self._modifications:
@@ -102,12 +102,6 @@ class ConfigureShortcutsDialog(QDialog):
             for shortcut in self._shortcuts:
                 self._modifications[shortcut] = shortcut.get_default_shortcut()
             self._apply()
-
-        # for shortcut in self._shortcuts:
-        #     self._tabs[shortcut.get_group()].findChild(QKeySequenceEdit, shortcut.get_label()).setKeySequence(
-        #         QKeySequence(shortcut.get_default_shortcut()))
-        #     self._tabs[shortcut.get_group()].findChild(QKeySequenceEdit, shortcut.get_label()).setStyleSheet(
-        #         'background-color: yellow')
 
     def _on_shortcut_changed(self, action: ShortcutAction, key_sequence: QKeySequence):
         key_sequence = key_sequence.toString()
