@@ -7,7 +7,7 @@ from livia_ui.gui.shortcuts.ShortcutAction import ShortcutAction
 from livia_ui.gui.status.ShortcutStatus import ShortcutStatus
 
 
-class ShortcutsConfiguration:
+class ShortcutsConfigurationStorage:
     def __init__(self, shortcut_status: ShortcutStatus):
         self._shortcut_status: ShortcutStatus = shortcut_status
         self._shortcuts: Dict[ShortcutAction, Tuple[str, ...]] = self._shortcut_status.shortcuts

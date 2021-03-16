@@ -80,8 +80,10 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _build_widgets(self):
         self._device_dialog = SelectDeviceDialog(self._device_provider(), self._livia_window)
         self._analyze_image_dialog = AnalyzeImageDialog(self._livia_status.video_stream_status, self._livia_window)
-        self._configure_shortcuts_dialog = ConfigureShortcutsDialog(self._livia_status.shortcut_status)
-        self._configure_video_analyzer_dialog = ConfigureVideoAnalyzerDialog(self._livia_status.video_stream_status)
+        self._configure_shortcuts_dialog = ConfigureShortcutsDialog(self._livia_status.shortcut_status,
+                                                                    self._livia_window)
+        self._configure_video_analyzer_dialog = ConfigureVideoAnalyzerDialog(self._livia_status.video_stream_status,
+                                                                             self._livia_window)
 
         self._add_file_menu()
         self._add_video_menu()

@@ -7,8 +7,8 @@ from PySide2.QtWidgets import QDialog, QVBoxLayout, QComboBox, QFormLayout, QDia
 from livia.process.analyzer.FrameAnalyzerManager import FrameAnalyzerManager
 from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata
 from livia_ui.gui import LIVIA_GUI_LOGGER
-from livia_ui.gui.status.FrameProcessingStatus import FrameProcessingStatus
 from livia_ui.gui.configuration.widgets.WidgetsFactory import WidgetsFactory
+from livia_ui.gui.status.FrameProcessingStatus import FrameProcessingStatus
 
 
 class ConfigureVideoAnalyzerDialog(QDialog):
@@ -34,7 +34,7 @@ class ConfigureVideoAnalyzerDialog(QDialog):
         form_panel_top.setLayout(form_layout_top)
 
         for analyzer in FrameAnalyzerManager.list_analyzers():
-            self._analyzer_combo_box.addItem(analyzer.name, analyzer)     
+            self._analyzer_combo_box.addItem(analyzer.name, analyzer)
 
         form_panel = QWidget()
         self._form_layout = QFormLayout()
@@ -65,7 +65,7 @@ class ConfigureVideoAnalyzerDialog(QDialog):
         if self._apply_button.isEnabled():
             self._apply()
         super(ConfigureVideoAnalyzerDialog, self).accept()
-        
+
     def open(self):
         for analyzer in FrameAnalyzerManager.list_analyzers():
             if analyzer.analyzer_class is self._frame_processing_status.live_frame_analyzer.__class__:
@@ -114,18 +114,22 @@ class ConfigureVideoAnalyzerDialog(QDialog):
             self._apply_button.setEnabled(True)
 
     def _build_analyzer(self):
-        def arg(arg_id):
-            return f"{arg_id}".replace("-", "_")
-
         if self._analyzer_combo_box.currentData() in FrameAnalyzerManager.list_analyzers():
 
             analyzer = self._analyzer_combo_box.currentData().analyzer_class()
             analyzer_metadata = self._analyzer_combo_box.currentData()
 
+            if self._frame_processing_status.live_frame_analyzer.__class__ ==\
+                    self._analyzer_combo_box.currentData().analyzer_class:
+                analyzer_old = self._frame_processing_status.live_frame_analyzer
+
+                for prop in analyzer_metadata.properties:
+                    setattr(analyzer, prop.name, getattr(analyzer_old, prop.name))
+
             for prop in analyzer_metadata.properties:
                 for modified_prop in self._modifications:
                     if modified_prop == prop:
-                        setattr(analyzer, arg(prop.id), self._modifications[modified_prop])
+                        setattr(analyzer, prop.name, self._modifications[modified_prop])
 
             self._frame_processing_status.live_frame_analyzer = analyzer
         else:
