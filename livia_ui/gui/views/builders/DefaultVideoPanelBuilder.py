@@ -10,8 +10,6 @@ from livia.output.CallbackFrameOutput import CallbackFrameOutput
 from livia.output.CompositeFrameOutput import CompositeFrameOutput
 from livia.output.FrameOutput import FrameOutput
 from livia.process.analyzer.FrameAnalyzer import FrameAnalyzer
-from livia.process.analyzer.FrameByFrameSquareFrameAnalyzer import FrameByFrameSquareFrameAnalyzer
-from livia.process.analyzer.NoChangeFrameAnalyzer import NoChangeFrameAnalyzer
 from livia.process.listener import build_listener
 from livia.process.listener.ProcessChangeEvent import ProcessChangeEvent
 from livia.process.listener.ProcessChangeListener import ProcessChangeListener
@@ -57,19 +55,15 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
         layout.addWidget(self._build_video_panel())
 
     def _listen_livia(self):
-        self._update_detect_objects(self._livia_status.display_status.detect_objects)
-
         self._add_frame_output_callback()
 
         self._livia_status.video_stream_status.add_frame_processing_status_change_listener(
             build_listener(FrameProcessingStatusChangeListener,
-                           frame_output_changed=self._on_frame_output_changed
-                           )
+                           frame_output_changed=self._on_frame_output_changed)
         )
 
         self._livia_status.display_status.add_display_status_change_listener(
             build_listener(DisplayStatusChangeListener,
-                           detect_objects_changed=self._on_detect_objects_changed,
                            resizable_changed=self._on_resizable_changed)
         )
 
@@ -107,15 +101,5 @@ class DefaultVideoPanelBuilder(VideoPanelBuilder):
     def _on_stream_finished(self, event: ProcessChangeEvent):
         self._video_panel.clear_frame()
 
-    def _on_detect_objects_changed(self, event: DisplayStatusChangeEvent):
-        self._update_detect_objects(event.value)
-
     def _on_resizable_changed(self, event: DisplayStatusChangeEvent):
         self._video_panel.set_image_resizable(event.value)
-
-    def _update_detect_objects(self, active: bool):
-        if active:
-            # TODO Change for user configured analyzer when setup display is integrated
-            self._livia_status.video_stream_status.live_frame_analyzer = self._live_frame_analyzer
-        else:
-            self._livia_status.video_stream_status.live_frame_analyzer = NoChangeFrameAnalyzer()

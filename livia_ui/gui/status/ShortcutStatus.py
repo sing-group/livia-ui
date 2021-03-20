@@ -44,8 +44,7 @@ class ShortcutStatus:
             self._action_keys[action] = {keys} if isinstance(keys, str) else keys
 
             event = ShortcutStatusChangeEvent(self, action, None, self._action_keys[action])
-            for listener in self._listeners:
-                listener.shortcut_added(event)
+            self._listeners.notify(ShortcutStatusChangeListener.shortcut_added, event)
 
     def remove_action(self, action: ShortcutAction):
         if self.has_action(action):
@@ -53,8 +52,7 @@ class ShortcutStatus:
             del self._action_keys[action]
 
             event = ShortcutStatusChangeEvent(self, action, keys, None)
-            for listener in self._listeners:
-                listener.shortcut_removed(event)
+            self._listeners.notify(ShortcutStatusChangeListener.shortcut_removed, event)
         else:
             raise ShortcutUnknownError(action)
 
@@ -71,8 +69,7 @@ class ShortcutStatus:
                 new_keys = self._action_keys[action]
 
                 event = ShortcutStatusChangeEvent(self, action, old_keys, new_keys)
-                for listener in self._listeners:
-                    listener.shortcut_modified(event)
+                self._listeners.notify(ShortcutStatusChangeListener.shortcut_modified, event)
         else:
             raise ShortcutUnknownError(action)
 
@@ -86,8 +83,7 @@ class ShortcutStatus:
                 new_keys = self._action_keys[action]
 
                 event = ShortcutStatusChangeEvent(self, action, old_keys, new_keys)
-                for listener in self._listeners:
-                    listener.shortcut_modified(event)
+                self._listeners.notify(ShortcutStatusChangeListener.shortcut_modified, event)
         else:
             raise ShortcutUnknownError(action)
 
@@ -101,8 +97,7 @@ class ShortcutStatus:
                 new_keys = self._action_keys[action]
 
                 event = ShortcutStatusChangeEvent(self, action, old_keys, new_keys)
-                for listener in self._listeners:
-                    listener.shortcut_modified(event)
+                self._listeners.notify(ShortcutStatusChangeListener.shortcut_modified, event)
         else:
             raise ShortcutUnknownError(action)
 

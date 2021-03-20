@@ -3,8 +3,7 @@ from PySide2.QtGui import QShowEvent
 from PySide2.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout, QFormLayout, QLabel, QComboBox, \
     QWidget, QSizePolicy
 
-from livia_ui.gui.views.utils import list_devices
-from livia_ui.gui.views.utils.Device import Device
+from livia.input.DeviceFrameInput import Device
 from livia_ui.gui.views.utils.DevicePanel import DevicePanel
 from livia_ui.gui.views.utils.DeviceProvider import DeviceProvider
 

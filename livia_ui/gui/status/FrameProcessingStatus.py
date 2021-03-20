@@ -17,17 +17,23 @@ from livia_ui.gui.status.listener.FrameProcessingStatusChangeListener import Fra
 
 
 class FrameProcessingStatus:
+    NO_CHANGE_LIVE_ANALYZER = NoChangeFrameAnalyzer()
+
     def __init__(self,
                  frame_input: FrameInput = NoFrameInput(),
                  frame_output: FrameOutput = NoFrameOutput(),
                  live_frame_analyzer: FrameAnalyzer = NoChangeFrameAnalyzer(),
-                 static_frame_analyzer: FrameAnalyzer = NoChangeFrameAnalyzer()):
+                 static_frame_analyzer: FrameAnalyzer = NoChangeFrameAnalyzer(),
+                 activate_live_analysis: bool = False):
         self._static_frame_analyzer: FrameAnalyzer = static_frame_analyzer
-        self._listeners: EventListeners[FrameProcessingStatusChangeListener] =\
+        self._live_frame_analyzer: FrameAnalyzer = live_frame_analyzer
+
+        self._listeners: EventListeners[FrameProcessingStatusChangeListener] = \
             EventListeners[FrameProcessingStatusChangeListener]()
 
         self._frame_processor: AnalyzerFrameProcessor = self._build_frame_processor(
-            frame_input, frame_output, live_frame_analyzer)
+            frame_input, frame_output,
+            live_frame_analyzer if activate_live_analysis else FrameProcessingStatus.NO_CHANGE_LIVE_ANALYZER)
 
     def _build_frame_processor(self, frame_input: FrameInput, frame_output: FrameOutput,
                                live_frame_analyzer: FrameAnalyzer) -> AnalyzerFrameProcessor:
@@ -61,11 +67,20 @@ class FrameProcessingStatus:
 
     @property
     def live_frame_analyzer(self) -> FrameAnalyzer:
-        return self._frame_processor.frame_analyzer
+        return self._live_frame_analyzer
 
     @live_frame_analyzer.setter
     def live_frame_analyzer(self, frame_analyzer: FrameAnalyzer):
-        self._frame_processor.frame_analyzer = frame_analyzer
+        if self._live_frame_analyzer != frame_analyzer:
+            if self.is_live_analysis_active():
+                # self._live_frame_analyzer will be updated in _on_analyzer_changed event
+                self._frame_processor.frame_analyzer = frame_analyzer
+            else:
+                old = self._live_frame_analyzer
+                self._live_frame_analyzer = frame_analyzer
+
+                event = FrameProcessingStatusChangeEvent(self, self._live_frame_analyzer, old)
+                self._listeners.notify(FrameProcessingStatusChangeListener.live_frame_analyzer_changed, event)
 
     @property
     def static_frame_analyzer(self) -> FrameAnalyzer:
@@ -78,12 +93,34 @@ class FrameProcessingStatus:
             self._static_frame_analyzer = frame_analyzer
 
             event = FrameProcessingStatusChangeEvent(self, self._static_frame_analyzer, old)
-            for listener in self._listeners:
-                listener.static_frame_analyzer_changed(event)
+            self._listeners.notify(FrameProcessingStatusChangeListener.static_frame_analyzer_changed, event)
 
     @property
     def frame_processor(self) -> AnalyzerFrameProcessor:
         return self._frame_processor
+
+    def change_live_analysis_activation(self, activate: bool):
+        if activate:
+            self.activate_live_analysis()
+        else:
+            self.deactivate_live_analysis()
+
+    def is_live_analysis_active(self) -> bool:
+        return self._frame_processor.frame_analyzer != FrameProcessingStatus.NO_CHANGE_LIVE_ANALYZER
+
+    def activate_live_analysis(self):
+        if self._frame_processor.frame_analyzer != self._live_frame_analyzer:
+            self._frame_processor.frame_analyzer = self._live_frame_analyzer
+
+            event = FrameProcessingStatusChangeEvent(self, True, False)
+            self._listeners.notify(FrameProcessingStatusChangeListener.live_frame_analyzer_activation_changed, event)
+
+    def deactivate_live_analysis(self):
+        if self._frame_processor.frame_analyzer != FrameProcessingStatus.NO_CHANGE_LIVE_ANALYZER:
+            self._frame_processor.frame_analyzer = FrameProcessingStatus.NO_CHANGE_LIVE_ANALYZER
+
+            event = FrameProcessingStatusChangeEvent(self, False, True)
+            self._listeners.notify(FrameProcessingStatusChangeListener.live_frame_analyzer_activation_changed, event)
 
     def add_frame_processing_status_change_listener(self, listener: FrameProcessingStatusChangeListener):
         self._listeners.append(listener)
@@ -96,18 +133,24 @@ class FrameProcessingStatus:
 
     def _on_input_changed(self, event: IOChangeEvent[FrameInput]):
         event = FrameProcessingStatusChangeEvent(self, event.new, event.old)
-
-        for listener in self._listeners:
-            listener.frame_input_changed(event)
+        self._listeners.notify(FrameProcessingStatusChangeListener.frame_input_changed, event)
 
     def _on_output_changed(self, event: IOChangeEvent[FrameOutput]):
         event = FrameProcessingStatusChangeEvent(self, event.new, event.old)
-
-        for listener in self._listeners:
-            listener.frame_output_changed(event)
+        self._listeners.notify(FrameProcessingStatusChangeListener.frame_output_changed, event)
 
     def _on_analyzer_changed(self, event: FrameAnalyzerChangeEvent):
-        event = FrameProcessingStatusChangeEvent(self, event.new, event.old)
+        if event.new != FrameProcessingStatus.NO_CHANGE_LIVE_ANALYZER:
+            self._live_frame_analyzer = event.new
 
-        for listener in self._listeners:
-            listener.live_frame_analyzer_changed(event)
+            change_event = FrameProcessingStatusChangeEvent(self, event.new, event.old)
+            self._listeners.notify(FrameProcessingStatusChangeListener.live_frame_analyzer_changed, change_event)
+
+        if event.new == FrameProcessingStatus.NO_CHANGE_LIVE_ANALYZER:
+            activation_event = FrameProcessingStatusChangeEvent(self, False, True)
+            self._listeners.notify(FrameProcessingStatusChangeListener.live_frame_analyzer_activation_changed,
+                                   activation_event)
+        elif event.old == FrameProcessingStatus.NO_CHANGE_LIVE_ANALYZER:
+            activation_event = FrameProcessingStatusChangeEvent(self, True, False)
+            self._listeners.notify(FrameProcessingStatusChangeListener.live_frame_analyzer_activation_changed,
+                                   activation_event)

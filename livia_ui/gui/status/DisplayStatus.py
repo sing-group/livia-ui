@@ -10,13 +10,11 @@ class DisplayStatus:
                  window_size: Tuple[int, int] = (800, 600),
                  fullscreen: bool = False,
                  resizable: bool = True,
-                 status_message: str = "",
-                 detect_objects: bool = False):
+                 status_message: str = ""):
         self._window_size: Tuple[int, int] = window_size
         self._fullscreen: bool = fullscreen
         self._resizable: bool = resizable
         self._status_message: str = status_message
-        self._detect_objects: bool = detect_objects
 
         self._listeners: EventListeners[DisplayStatusChangeListener] =\
             EventListeners[DisplayStatusChangeListener]()
@@ -31,8 +29,7 @@ class DisplayStatus:
             self._window_size = window_size
 
             event = DisplayStatusChangeEvent(self, self._window_size)
-            for listener in self._listeners:
-                listener.window_size_changed(event)
+            self._listeners.notify(DisplayStatusChangeListener.window_size_changed, event)
 
     @property
     def fullscreen(self) -> bool:
@@ -44,8 +41,7 @@ class DisplayStatus:
             self._fullscreen = fullscreen
 
             event = DisplayStatusChangeEvent(self, self._fullscreen)
-            for listener in self._listeners:
-                listener.fullscreen_changed(event)
+            self._listeners.notify(DisplayStatusChangeListener.fullscreen_changed, event)
 
     def toggle_fullscreen(self):
         self.fullscreen = not self.fullscreen
@@ -60,8 +56,7 @@ class DisplayStatus:
             self._resizable = resizable
 
             event = DisplayStatusChangeEvent(self, self._resizable)
-            for listener in self._listeners:
-                listener.resizable_changed(event)
+            self._listeners.notify(DisplayStatusChangeListener.resizable_changed, event)
 
     def toggle_resizable(self):
         self.resizable = not self.resizable
@@ -76,24 +71,7 @@ class DisplayStatus:
             self._status_message = status_message
 
             event = DisplayStatusChangeEvent(self, self._status_message)
-            for listener in self._listeners:
-                listener.status_message_changed(event)
-
-    @property
-    def detect_objects(self) -> bool:
-        return self._detect_objects
-
-    @detect_objects.setter
-    def detect_objects(self, detect_objects: bool):
-        if self._detect_objects != detect_objects:
-            self._detect_objects = detect_objects
-
-            event = DisplayStatusChangeEvent(self, self._detect_objects)
-            for listener in self._listeners:
-                listener.detect_objects_changed(event)
-
-    def toggle_detect_objects(self):
-        self.detect_objects = not self.detect_objects
+            self._listeners.notify(DisplayStatusChangeListener.status_message_changed, event)
 
     def add_display_status_change_listener(self, listener: DisplayStatusChangeListener):
         self._listeners.append(listener)

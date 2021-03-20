@@ -36,11 +36,11 @@ class UiLiviaWindow(object):
     def setup_ui(self, livia_window: LiviaWindow, builders: GuiBuilders):
         self._livia_window = livia_window
 
-        self._menu_bar_builder = builders.menu_bar_builder.create_builder(self)
-        self._top_tool_bar_builder = builders.top_tool_bar_builder.create_builder(self)
-        self._video_panel_builder = builders.video_panel_builder.create_builder(self)
-        self._bottom_tool_bar_builder = builders.bottom_tool_bar_builder.create_builder(self)
-        self._status_bar_builder = builders.status_bar_builder.create_builder(self)
+        self._menu_bar_builder = builders.menu_bar_builder.create_builder(livia_window)
+        self._top_tool_bar_builder = builders.top_tool_bar_builder.create_builder(livia_window)
+        self._video_panel_builder = builders.video_panel_builder.create_builder(livia_window)
+        self._bottom_tool_bar_builder = builders.bottom_tool_bar_builder.create_builder(livia_window)
+        self._status_bar_builder = builders.status_bar_builder.create_builder(livia_window)
 
         self._menu_bar = self._menu_bar_builder.build(self._livia_window)
         self._status_bar = self._status_bar_builder.build(self._livia_window)

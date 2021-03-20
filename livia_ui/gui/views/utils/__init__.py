@@ -14,9 +14,9 @@ def convert_image_opencv_to_qt(image: ndarray) -> Optional[QImage]:
             height, width, colors = image.shape
             bytes_per_line = colors * width
 
-            image = QImage(image.data, width, height, bytes_per_line, QImage.Format_RGB888)
+            qimage = QImage(image.data, width, height, bytes_per_line, QImage.Format_RGB888)
 
-            return image.rgbSwapped()
+            return qimage.rgbSwapped()
         except AttributeError:
             LIVIA_GUI_LOGGER.error("Unknown frame format")
             return None

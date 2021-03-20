@@ -8,7 +8,7 @@ from cv2 import VideoCapture
 import cv2
 
 from livia_ui.gui.views.utils import convert_image_opencv_to_qt
-from livia_ui.gui.views.utils.Device import Device
+from livia.input.DeviceFrameInput import Device
 
 
 class _VideoThread(QThread):
@@ -76,11 +76,12 @@ class _VideoThread(QThread):
                     self._condition.notify()
 
     def change_device(self, device: Optional[Device]):
-        with self._condition:
-            if device.index is not None:
-                self._device.open(device.index, device.api)
-                self._device_data = device
-            self._condition.notify()
+        if device is not None:
+            with self._condition:
+                if device.index is not None:
+                    self._device.open(device.index, device.api)
+                    self._device_data = device
+                self._condition.notify()
 
 
 class DevicePanel(QWidget):

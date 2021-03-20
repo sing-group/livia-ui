@@ -29,8 +29,7 @@ class WidgetWrapper(ABC, Generic[T]):
 
     def _notify_listeners(self, value: T):
         event = WidgetChangeEvent(value)
-        for listener in self._widget_change_listeners:
-            listener.value_changed(event)
+        self._widget_change_listeners.notify(WidgetChangeListener.value_changed, event)
 
     def add_listener(self, listener: WidgetChangeListener):
         self._widget_change_listeners.append(listener)

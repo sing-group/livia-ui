@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from livia_ui.gui.views.utils.Device import Device
+from livia.input.DeviceFrameInput import Device
 
 
 class DeviceProvider(ABC):

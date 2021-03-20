@@ -1,8 +1,9 @@
+from xml.dom import minidom
+from xml.etree import ElementTree
+
 import os
 import shutil
-from typing import Optional
-from xml.etree import ElementTree
-from xml.etree.ElementTree import Element
+from typing import Optional, TextIO
 
 from livia.process.listener import build_listener
 from livia_ui.gui import LIVIA_GUI_LOGGER
@@ -15,65 +16,73 @@ from livia_ui.gui.status.listener.ShortcutStatusChangeListener import ShortcutSt
 
 
 class ConfigurationStorage:
-    def __init__(self, livia_status: LiviaStatus, configuration_file: str):
+    def __init__(self,
+                 livia_status: LiviaStatus,
+                 configuration_file: Optional[TextIO],
+                 load_configuration: bool = False,
+                 auto_update: bool = True):
         self._livia_status: LiviaStatus = livia_status
-        self._file_path: str = configuration_file
-
-        self._configuration_root: Element = None
-        self._shortcuts_configuration_root: Element = None
-        self._analyzer_configuration_root: Element = None
+        self._configuration_file: Optional[TextIO] = configuration_file
 
         self._shortcuts_configuration: ShortcutsConfigurationStorage = \
             ShortcutsConfigurationStorage(self._livia_status.shortcut_status)
         self._analyzer_configuration: AnalyzerConfigurationStorage = \
             AnalyzerConfigurationStorage(self._livia_status.video_stream_status)
 
-        self._read_configuration()
+        if configuration_file is not None:
+            if load_configuration:
+                self.load_configuration()
 
-        self._listen_livia()
+            if auto_update:
+                self._livia_status.shortcut_status.add_shortcut_configuration_change_listener(
+                    build_listener(ShortcutStatusChangeListener,
+                                   shortcut_added=self._on_save_configuration,
+                                   shortcut_modified=self._on_save_configuration,
+                                   shortcut_removed=self._on_save_configuration
+                                   )
+                )
+                self._livia_status.video_stream_status.add_frame_processing_status_change_listener(
+                    build_listener(FrameProcessingStatusChangeListener,
+                                   live_frame_analyzer_changed=self._on_save_configuration)
+                )
 
-    def _listen_livia(self):
-        self._livia_status.shortcut_status.add_shortcut_configuration_change_listener(
-            build_listener(ShortcutStatusChangeListener,
-                           shortcut_added=self._save_configuration,
-                           shortcut_modified=self._save_configuration,
-                           shortcut_removed=self._save_configuration
-                           )
-        )
-        self._livia_status.video_stream_status.add_frame_processing_status_change_listener(
-            build_listener(FrameProcessingStatusChangeListener,
-                           live_frame_analyzer_changed=self._save_configuration)
-        )
+    def _on_save_configuration(self, event: ShortcutStatusChangeEvent) -> None:
+        self.save_configuration()
 
-    def _read_configuration(self):
+    def load_configuration(self, file: Optional[TextIO] = None) -> None:
+        file = file if file is not None else self._configuration_file
+
+        if file is None:
+            raise FileNotFoundError("No file available to load configuration")
+
         try:
-            self._configuration_root = ElementTree.parse(self._file_path).getroot()
-            self._shortcuts_configuration_root = self._configuration_root.find("shortcuts")
-            self._analyzer_configuration_root = self._configuration_root.find("analyzers")
+            configuration_root = ElementTree.parse(file).getroot()
 
-            if self._shortcuts_configuration_root is not None:
-                self._shortcuts_configuration.read_configuration(self._shortcuts_configuration_root)
-            if self._analyzer_configuration_root is not None:
-                self._analyzer_configuration.read_configuration(self._analyzer_configuration_root)
+            self._shortcuts_configuration.load_configuration(configuration_root)
+            self._analyzer_configuration.load_configuration(configuration_root)
         except FileNotFoundError:
-            LIVIA_GUI_LOGGER.exception("Configuration file '" + self._file_path + "' not found")
+            LIVIA_GUI_LOGGER.exception(f"Configuration file '{file}' not found")
         except ElementTree.ParseError:
-            LIVIA_GUI_LOGGER.exception("Error parsing configuration file '" + self._file_path + "'")
+            LIVIA_GUI_LOGGER.exception(f"Error parsing configuration file '{file}'")
 
-    def _save_configuration(self, event: Optional[ShortcutStatusChangeEvent] = None):
-        configuration = ElementTree.Element("configuration")
+    def save_configuration(self, file: Optional[TextIO] = None) -> None:
+        file = file if file is not None else self._configuration_file
 
-        shortcuts = self._shortcuts_configuration.save_configuration()
-        analyzer = self._analyzer_configuration.save_configuration()
+        if file is None:
+            raise FileNotFoundError("No file available to save configuration")
 
-        configuration.append(shortcuts)
-        configuration.append(analyzer)
+        configuration_root = ElementTree.Element("configuration")
 
-        datastr = ElementTree.tostring(configuration)
-        file = open(self._file_path + '.new', "wb")
-        file.write(datastr)
-        file.close()
+        self._shortcuts_configuration.save_configuration(configuration_root)
+        self._analyzer_configuration.save_configuration(configuration_root)
 
-        shutil.copy(self._file_path + '.new', self._file_path)
+        tmp_file_name = file.name + ".new"
+        with open(tmp_file_name, "wb") as tmp_file:
+            encoding = "utf-8"
+            xml = ElementTree.tostring(configuration_root, encoding=encoding)
+            formatted_xml = minidom.parseString(xml).toprettyxml()
+            tmp_file.write(formatted_xml.encode(encoding))
 
-        os.remove(self._file_path + '.new')
+        shutil.copy(tmp_file_name, file.name)
+
+        os.remove(tmp_file_name)

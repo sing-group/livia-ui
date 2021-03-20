@@ -147,6 +147,7 @@ class VideoBar(QWidget):
     def _on_stream_stopped(self, event: ProcessChangeEvent):
         self._enable_stop_button_signal.emit(False)
         self._set_play_icon_signal.emit(self._play_icon)
+        self._current_time_changed_signal.emit(0, 0)
 
     def _on_stream_paused(self, event: ProcessChangeEvent):
         self._set_play_icon_signal.emit(self._resume_icon)

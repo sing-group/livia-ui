@@ -6,14 +6,17 @@ from livia_ui.gui.status.listener.FrameProcessingStatusChangeEvent import FrameP
 
 
 class FrameProcessingStatusChangeListener(EventListener):
-    def frame_input_changed(self, event: FrameProcessingStatusChangeEvent[FrameInput]):
+    def frame_input_changed(self, event: FrameProcessingStatusChangeEvent[FrameInput]) -> None:
         pass
 
-    def frame_output_changed(self, event: FrameProcessingStatusChangeEvent[FrameOutput]):
+    def frame_output_changed(self, event: FrameProcessingStatusChangeEvent[FrameOutput]) -> None:
         pass
 
-    def live_frame_analyzer_changed(self, event: FrameProcessingStatusChangeEvent[FrameAnalyzer]):
+    def live_frame_analyzer_changed(self, event: FrameProcessingStatusChangeEvent[FrameAnalyzer]) -> None:
         pass
 
-    def static_frame_analyzer_changed(self, event: FrameProcessingStatusChangeEvent[FrameAnalyzer]):
+    def static_frame_analyzer_changed(self, event: FrameProcessingStatusChangeEvent[FrameAnalyzer]) -> None:
+        pass
+
+    def live_frame_analyzer_activation_changed(self, event: FrameProcessingStatusChangeEvent[bool]):
         pass

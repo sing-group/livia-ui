@@ -60,8 +60,8 @@ class _Shortcut:
             shortcut[0].disconnect()
 
     def _notify_shortcut_trigger(self, keys: str):
-        for listener in self._listeners:
-            listener.shortcut_triggered(ShortcutTriggerEvent(self._action, keys))
+        event = ShortcutTriggerEvent(self._action, keys)
+        self._listeners.notify(ShortcutTriggerListener.shortcut_triggered, event)
 
     @property
     def keys(self) -> Set[str]:

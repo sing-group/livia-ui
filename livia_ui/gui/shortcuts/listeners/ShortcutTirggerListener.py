@@ -3,5 +3,5 @@ from livia_ui.gui.shortcuts.listeners.ShortcutTriggerEvent import ShortcutTrigge
 
 
 class ShortcutTriggerListener(EventListener):
-    def shortcut_triggered(self, event: ShortcutTriggerEvent):
+    def shortcut_triggered(self, event: ShortcutTriggerEvent) -> None:
         pass

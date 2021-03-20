@@ -3,11 +3,11 @@ from livia_ui.gui.status.listener.ShortcutStatusChangeEvent import ShortcutStatu
 
 
 class ShortcutStatusChangeListener(EventListener):
-    def shortcut_added(self, event: ShortcutStatusChangeEvent):
+    def shortcut_added(self, event: ShortcutStatusChangeEvent) -> None:
         pass
 
-    def shortcut_modified(self, event: ShortcutStatusChangeEvent):
+    def shortcut_modified(self, event: ShortcutStatusChangeEvent) -> None:
         pass
 
-    def shortcut_removed(self, event: ShortcutStatusChangeEvent):
+    def shortcut_removed(self, event: ShortcutStatusChangeEvent) -> None:
         pass

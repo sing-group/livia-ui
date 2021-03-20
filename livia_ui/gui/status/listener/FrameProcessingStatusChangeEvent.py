@@ -9,7 +9,7 @@ from livia.process.analyzer.FrameAnalyzer import FrameAnalyzer
 if TYPE_CHECKING:
     from livia_ui.gui.status.FrameProcessingStatus import FrameProcessingStatus
 
-T = TypeVar('T', FrameInput, FrameOutput, FrameAnalyzer)
+T = TypeVar('T', bool, FrameInput, FrameOutput, FrameAnalyzer)
 
 
 class FrameProcessingStatusChangeEvent(Generic[T]):

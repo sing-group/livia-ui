@@ -3,7 +3,7 @@ from typing import List
 import cv2
 from cv2 import VideoCapture
 
-from livia_ui.gui.views.utils.Device import Device
+from livia.input.DeviceFrameInput import Device
 from livia_ui.gui.views.utils.DeviceProvider import DeviceProvider
 
 
