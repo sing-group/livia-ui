@@ -1,3 +1,4 @@
+import os
 from ast import literal_eval
 from xml.etree.ElementTree import Element, SubElement, ParseError
 
@@ -5,6 +6,7 @@ from livia.process.analyzer.FrameAnalyzerManager import FrameAnalyzerManager
 from livia.process.analyzer.NoChangeFrameAnalyzer import NoChangeFrameAnalyzer
 from livia_ui.gui import LIVIA_GUI_LOGGER
 from livia_ui.gui.status.FrameProcessingStatus import FrameProcessingStatus
+from livia_ui.gui.views.utils.FileDataType import FileDataType
 
 
 class AnalyzerConfigurationStorage:
@@ -21,7 +23,12 @@ class AnalyzerConfigurationStorage:
 
         for prop in metadata.properties:
             value = getattr(actual_analyzer, prop.name)
-            if not prop.hidden and prop.default_value != value:
+            if type(prop.default_value) is FileDataType:
+                if not prop.hidden and prop.default_value.path != value.path:
+                    property_write = SubElement(live_configuration_write, "property")
+                    property_write.set("name", prop.name)
+                    property_write.text = str(value.path)
+            elif not prop.hidden and prop.default_value != value:
                 property_write = SubElement(live_configuration_write, "property")
                 property_write.set("name", prop.name)
                 property_write.text = str(value)
@@ -46,7 +53,10 @@ class AnalyzerConfigurationStorage:
                         continue
 
                     if prop_readed.get("name") == prop.name:
-                        setattr(live_analyzer, prop.name, literal_eval(prop_readed.text))
+                        if FileDataType.can_manage(prop_readed.text):
+                            setattr(live_analyzer, prop.name, FileDataType(prop_readed.text))
+                        else:
+                            setattr(live_analyzer, prop.name, literal_eval(prop_readed.text))
                         break
 
             self._processing_status.live_frame_analyzer = live_analyzer

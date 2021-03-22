@@ -9,6 +9,8 @@ from livia_ui.gui.configuration.widgets.BoolWidgetFactory import BoolWidgetFacto
 from livia_ui.gui.configuration.widgets.ColorWidgetFactory import ColorWidgetFactory
 from livia_ui.gui.configuration.widgets.FloatWidgetFactory import FloatWidgetFactory
 from livia_ui.gui.configuration.widgets.IntWidgetFactory import IntWidgetFactory
+from livia_ui.gui.configuration.widgets.ListStringWidgetFactory import ListStringWidgetFactory
+from livia_ui.gui.configuration.widgets.SelectFileWidgetFactory import SelectFileWidgetFactory
 from livia_ui.gui.configuration.widgets.StringWidgetFactory import StringWidgetFactory
 from livia_ui.gui.configuration.widgets.WidgetFactory import WidgetFactory
 from livia_ui.gui.configuration.widgets.listener.WidgetChangeListener import WidgetChangeListener
@@ -16,10 +18,12 @@ from livia_ui.gui.configuration.widgets.listener.WidgetChangeListener import Wid
 
 class WidgetsFactory:
     def __init__(self):
-        self._widget_factories: List[WidgetFactory[Any]] = [StringWidgetFactory(),
+        self._widget_factories: List[WidgetFactory[Any]] = [ListStringWidgetFactory(),
+                                                            SelectFileWidgetFactory(),
+                                                            ColorWidgetFactory(),
+                                                            StringWidgetFactory(),
                                                             IntWidgetFactory(),
                                                             FloatWidgetFactory(),
-                                                            ColorWidgetFactory(),
                                                             BoolWidgetFactory()]
 
     def register_factory(self, widget_factory: WidgetFactory[Any]):

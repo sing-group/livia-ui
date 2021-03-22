@@ -8,7 +8,7 @@ from livia_ui.gui.configuration.widgets.WidgetFactory import WidgetFactory, Widg
 
 
 class ColorWidgetWrapper(WidgetWrapper[Tuple[int, int, int]]):
-    def __init__(self, widget: QLineEdit):
+    def __init__(self, widget: QToolButton):
         super(ColorWidgetWrapper, self).__init__(widget)
 
     def _listen_widget(self):

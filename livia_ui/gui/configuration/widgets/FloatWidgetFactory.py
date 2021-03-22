@@ -7,7 +7,7 @@ from livia_ui.gui.configuration.widgets.WidgetFactory import WidgetFactory, Widg
 
 
 class FloatWidgetWrapper(WidgetWrapper[float]):
-    def __init__(self, widget: QLineEdit):
+    def __init__(self, widget: QDoubleSpinBox):
         super(FloatWidgetWrapper, self).__init__(widget)
 
     def _listen_widget(self):
