@@ -1,6 +1,6 @@
 import re
-
-from PySide2.QtWidgets import QLineEdit, QSpinBox
+from PySide2.QtWidgets import QSpinBox
+from typing import Optional
 
 from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata
 from livia_ui.gui.configuration.widgets.WidgetFactory import WidgetFactory, WidgetWrapper
@@ -15,19 +15,24 @@ class IntWidgetWrapper(WidgetWrapper[int]):
 
 
 class IntWidgetFactory(WidgetFactory[int]):
-    def can_manage(self, actual_value) -> bool:
-        return type(actual_value) is int
+    __PATTERN: str = "(\\d+):(\\d+)"
 
-    def build_widget(self, actual_value: int, prop: FrameAnalyzerPropertyMetadata) -> WidgetWrapper[int]:
+    def can_manage(self, prop: FrameAnalyzerPropertyMetadata) -> bool:
+        return prop.prop_type is int
+
+    def build_widget(self, prop: FrameAnalyzerPropertyMetadata, actual_value: Optional[int] = None) -> \
+        WidgetWrapper[int]:
         widget = QSpinBox()
-        widget.setValue(actual_value)
-
-        if prop.hints is not None:
-            pattern = '(\d+):(\d+)'
-            results = re.findall(pattern, prop.hints)
-            if len(results) > 0:
-                widget.setRange(int(results[0][0]), int(results[0][1]))
+        value = prop.default_value if actual_value is None else actual_value
+        if value is not None:
+            widget.setValue(value)
+            widget.setRange(0, max(100, value))
         else:
             widget.setRange(0, 100)
+
+        for hint in prop.hints:
+            match = re.match(IntWidgetFactory.__PATTERN, hint)
+            if match is not None:
+                widget.setRange(int(match[1]), int(match[2]))
 
         return IntWidgetWrapper(widget)

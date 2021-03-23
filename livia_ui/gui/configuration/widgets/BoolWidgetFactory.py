@@ -1,4 +1,5 @@
 from PySide2.QtWidgets import QLineEdit, QCheckBox
+from typing import Optional
 
 from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata
 from livia_ui.gui.configuration.widgets.WidgetFactory import WidgetFactory, WidgetWrapper
@@ -10,15 +11,18 @@ class BoolWidgetWrapper(WidgetWrapper[bool]):
 
     def _listen_widget(self):
         self._widget.stateChanged.connect(lambda new_value: self._notify_listeners(True) if new_value > 0
-                                          else self._notify_listeners(False))
+        else self._notify_listeners(False))
 
 
 class BoolWidgetFactory(WidgetFactory[bool]):
-    def can_manage(self, actual_value) -> bool:
-        return type(actual_value) is bool
+    def can_manage(self, prop: FrameAnalyzerPropertyMetadata) -> bool:
+        return prop.prop_type is bool
 
-    def build_widget(self, actual_value: bool, prop: FrameAnalyzerPropertyMetadata) -> WidgetWrapper[bool]:
+    def build_widget(self, prop: FrameAnalyzerPropertyMetadata, actual_value: Optional[bool] = None) -> WidgetWrapper[
+        bool]:
+        value = prop.default_value if actual_value is None else actual_value
+
         widget = QCheckBox()
-        widget.setChecked(actual_value)
+        widget.setChecked(value is True)
 
         return BoolWidgetWrapper(widget)

@@ -1,6 +1,6 @@
 import re
-
-from PySide2.QtWidgets import QLineEdit, QDoubleSpinBox
+from PySide2.QtWidgets import QDoubleSpinBox
+from typing import Optional
 
 from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata
 from livia_ui.gui.configuration.widgets.WidgetFactory import WidgetFactory, WidgetWrapper
@@ -15,26 +15,28 @@ class FloatWidgetWrapper(WidgetWrapper[float]):
 
 
 class FloatWidgetFactory(WidgetFactory[float]):
-    def can_manage(self, actual_value) -> bool:
-        return type(actual_value) is float
+    __PATTERN_RANGE: str = "((\\d*\\.\\d+)|(\\d+)):((\\d*\\.\\d+)|(\\d+))"
+    __PATTERN_STEP: str = "(\\d*\\.\\d+)"
 
-    def build_widget(self, actual_value: float, prop: FrameAnalyzerPropertyMetadata) -> WidgetWrapper[float]:
+    def can_manage(self, prop: FrameAnalyzerPropertyMetadata) -> bool:
+        return prop.prop_type is float
+
+    def build_widget(self, prop: FrameAnalyzerPropertyMetadata, actual_value: Optional[float] = None) -> \
+        WidgetWrapper[float]:
         widget = QDoubleSpinBox()
-        widget.setValue(actual_value)
 
-        if prop.hints is not None:
-            parameters = prop.hints.split('|')
-            for param in parameters:
-                pattern_range = '((\d*\.\d+)|(\d+)):((\d*\.\d+)|(\d+))'
-                pattern_step = '(\d*\.\d+)'
+        value = prop.default_value if actual_value is None else actual_value
+        if value is not None:
+            widget.setValue(value)
 
-                if re.match(pattern_range, param):
-                    param = param.split(':')
-                    widget.setRange(float(param[0]), float(param[1]))
-                elif re.match(pattern_step, param):
-                    widget.setSingleStep(float(param))
-        else:
-            widget.setRange(0, 1)
-            widget.setSingleStep(0.01)
+        widget.setRange(0, 1)
+        widget.setSingleStep(0.01)
+
+        for hint in prop.hints:
+            if re.match(FloatWidgetFactory.__PATTERN_RANGE, hint):
+                float_range = hint.split(':')
+                widget.setRange(float(float_range[0]), float(float_range[1]))
+            elif re.match(FloatWidgetFactory.__PATTERN_STEP, hint):
+                widget.setSingleStep(float(hint))
 
         return FloatWidgetWrapper(widget)

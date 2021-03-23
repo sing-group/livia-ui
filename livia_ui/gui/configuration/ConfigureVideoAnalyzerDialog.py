@@ -1,11 +1,10 @@
-from typing import Dict, Any
-
 from PySide2.QtCore import QCoreApplication, Qt
 from PySide2.QtWidgets import QDialog, QVBoxLayout, QComboBox, QFormLayout, QDialogButtonBox, QLabel, QWidget, \
     QHBoxLayout
+from typing import Dict, Any
 
 from livia.process.analyzer.FrameAnalyzerManager import FrameAnalyzerManager
-from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata
+from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata, FrameAnalyzerMetadata
 from livia_ui.gui import LIVIA_GUI_LOGGER
 from livia_ui.gui.configuration.widgets.WidgetsFactory import WidgetsFactory
 from livia_ui.gui.status.FrameProcessingStatus import FrameProcessingStatus
@@ -90,47 +89,52 @@ class ConfigureVideoAnalyzerDialog(QDialog):
         for row_num in range(0, self._form_layout.rowCount()):
             self._form_layout.removeRow(0)
 
-        actual_analyzer = self._frame_processing_status.live_frame_analyzer
+        current_analyzer = self._frame_processing_status.live_frame_analyzer
 
-        for prop in self._analyzer_combo_box.currentData().properties:
+        selected_analyzer: FrameAnalyzerMetadata = self._analyzer_combo_box.currentData()
+
+        for prop in selected_analyzer.properties:
+            if prop.hidden:
+                continue
+
             label = prop.descriptive_name
 
-            if actual_analyzer.__class__ is self._analyzer_combo_box.currentData().analyzer_class and not prop.hidden:
-                widget = self._widgets_factory.get_widget(prop, self._on_parameter_changed,
-                                                          getattr(actual_analyzer, prop.name))
-            elif not prop.hidden:
-                widget = self._widgets_factory.get_widget(prop, self._on_parameter_changed)
+            if self._is_current_analyzer_selected():
+                current_value = prop.get_value(current_analyzer)
+                widget = self._widgets_factory.get_widget(prop, self._on_parameter_changed, current_value)
             else:
-                continue
+                widget = self._widgets_factory.get_widget(prop, self._on_parameter_changed)
 
             row_layout = QHBoxLayout()
             row_layout.addStretch()
             row_layout.addWidget(widget, 0, Qt.AlignRight)
             self._form_layout.addRow(label, row_layout)
 
-        if actual_analyzer.__class__ is self._analyzer_combo_box.currentData().analyzer_class:
-            self._apply_button.setEnabled(False)
-        else:
-            self._apply_button.setEnabled(True)
+        self._apply_button.setEnabled(not self._is_current_analyzer_selected())
 
     def _build_analyzer(self):
-        if self._analyzer_combo_box.currentData() in FrameAnalyzerManager.list_analyzers():
+        analyzer_metadata: FrameAnalyzerMetadata = self._analyzer_combo_box.currentData()
 
-            analyzer = self._analyzer_combo_box.currentData().analyzer_class()
-            analyzer_metadata = self._analyzer_combo_box.currentData()
+        if analyzer_metadata in FrameAnalyzerManager.list_analyzers():
+            analyzer = analyzer_metadata.analyzer_class()
 
-            if self._frame_processing_status.live_frame_analyzer.__class__ ==\
-                    self._analyzer_combo_box.currentData().analyzer_class:
+            if self._is_current_analyzer_selected():
                 analyzer_old = self._frame_processing_status.live_frame_analyzer
 
                 for prop in analyzer_metadata.properties:
-                    setattr(analyzer, prop.name, getattr(analyzer_old, prop.name))
+                    prop.set_value(analyzer, prop.get_value(analyzer_old))
 
             for prop in analyzer_metadata.properties:
                 for modified_prop in self._modifications:
                     if modified_prop == prop:
-                        setattr(analyzer, prop.name, self._modifications[modified_prop])
+                        prop.set_value(analyzer, self._modifications[modified_prop])
 
             self._frame_processing_status.live_frame_analyzer = analyzer
         else:
             LIVIA_GUI_LOGGER.exception("Error Configuring live analyzer")
+
+    def _is_current_analyzer_selected(self) -> bool:
+        analyzer_metadata: FrameAnalyzerMetadata = self._analyzer_combo_box.currentData()
+        current_analyzer = self._frame_processing_status.live_frame_analyzer
+
+        return isinstance(current_analyzer, analyzer_metadata.analyzer_class)

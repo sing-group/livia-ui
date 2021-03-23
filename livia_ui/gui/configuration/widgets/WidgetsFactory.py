@@ -1,6 +1,5 @@
-from typing import Callable, List, Any
-
 from PySide2.QtWidgets import QLabel, QWidget
+from typing import Callable, List, Any
 
 from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata
 from livia.process.listener import build_listener
@@ -17,27 +16,23 @@ from livia_ui.gui.configuration.widgets.listener.WidgetChangeListener import Wid
 
 
 class WidgetsFactory:
-    def __init__(self):
-        self._widget_factories: List[WidgetFactory[Any]] = [ListStringWidgetFactory(),
-                                                            SelectFileWidgetFactory(),
-                                                            ColorWidgetFactory(),
-                                                            StringWidgetFactory(),
-                                                            IntWidgetFactory(),
-                                                            FloatWidgetFactory(),
-                                                            BoolWidgetFactory()]
+    def __init__(self, default_factories: List[WidgetFactory[Any]] = [ListStringWidgetFactory(),
+                                                                      SelectFileWidgetFactory(),
+                                                                      ColorWidgetFactory(),
+                                                                      StringWidgetFactory(),
+                                                                      IntWidgetFactory(),
+                                                                      FloatWidgetFactory(),
+                                                                      BoolWidgetFactory()]):
+        self._widget_factories: List[WidgetFactory[Any]] = default_factories
 
     def register_factory(self, widget_factory: WidgetFactory[Any]):
         self._widget_factories.append(widget_factory)
 
-    def get_widget(self, prop: FrameAnalyzerPropertyMetadata, function: Callable, value = None) -> QWidget:
-        if value is not None:
-            actual_value = value
-        else:
-            actual_value = prop.default_value
-
+    def get_widget(self, prop: FrameAnalyzerPropertyMetadata,
+                   function: Callable[[FrameAnalyzerPropertyMetadata, Any], None], value=None) -> QWidget:
         for factory in self._widget_factories:
-            if factory.can_manage(actual_value):
-                widget_wrapper = factory.build_widget(actual_value, prop)
+            if factory.can_manage(prop):
+                widget_wrapper = factory.build_widget(prop, value)
 
                 widget_wrapper.add_listener(build_listener(
                     WidgetChangeListener, value_changed=lambda event: function(prop, event.value())
@@ -48,6 +43,6 @@ class WidgetsFactory:
         widget = QLabel()
         widget.setText("Widget Not Defined")
         widget.setStyleSheet("font-weight: bold; color: red")
-        LIVIA_GUI_LOGGER.exception("Widget not defined for data type: " + str(type(actual_value)))
+        LIVIA_GUI_LOGGER.exception(f"Widget not defined for data type: {prop.prop_type}")
 
         return widget

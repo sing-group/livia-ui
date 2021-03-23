@@ -1,7 +1,6 @@
-from abc import ABC, abstractmethod
-from typing import TypeVar, Generic, Any
-
 from PySide2.QtWidgets import QWidget
+from abc import ABC, abstractmethod
+from typing import TypeVar, Generic, Optional
 
 from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata
 from livia.process.listener.EventListeners import EventListeners
@@ -37,9 +36,9 @@ class WidgetWrapper(ABC, Generic[T]):
 
 class WidgetFactory(ABC, Generic[T]):
     @abstractmethod
-    def can_manage(self, actual_value: Any) -> bool:
+    def can_manage(self, prop: FrameAnalyzerPropertyMetadata) -> bool:
         raise NotImplementedError()
 
     @abstractmethod
-    def build_widget(self, actual_value: T, prop: FrameAnalyzerPropertyMetadata) -> WidgetWrapper[T]:
+    def build_widget(self, prop: FrameAnalyzerPropertyMetadata, actual_value: Optional[T] = None) -> WidgetWrapper[T]:
         raise NotImplementedError()

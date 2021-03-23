@@ -1,4 +1,5 @@
 from PySide2.QtWidgets import QLineEdit
+from typing import Optional
 
 from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata
 from livia_ui.gui.configuration.widgets.WidgetFactory import WidgetFactory, WidgetWrapper
@@ -13,10 +14,16 @@ class StringWidgetWrapper(WidgetWrapper[str]):
 
 
 class StringWidgetFactory(WidgetFactory[str]):
-    def can_manage(self, actual_value) -> bool:
-        return type(actual_value) is str
+    def can_manage(self, prop: FrameAnalyzerPropertyMetadata) -> bool:
+        return prop.prop_type is str
 
-    def build_widget(self, actual_value: str, prop: FrameAnalyzerPropertyMetadata) -> WidgetWrapper[str]:
-        widget = QLineEdit(actual_value)
+    def build_widget(self, prop: FrameAnalyzerPropertyMetadata, actual_value: Optional[str] = None) -> \
+        WidgetWrapper[str]:
+        value = prop.default_value if actual_value is None else actual_value
+
+        if value is None:
+            widget = QLineEdit()
+        else:
+            widget = QLineEdit(actual_value)
 
         return StringWidgetWrapper(widget)
