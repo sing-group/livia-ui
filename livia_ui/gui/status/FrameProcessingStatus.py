@@ -1,3 +1,5 @@
+from typing import List
+
 from livia.input.FrameInput import FrameInput
 from livia.input.NoFrameInput import NoFrameInput
 from livia.output.FrameOutput import FrameOutput
@@ -12,6 +14,7 @@ from livia.process.listener import build_listener
 from livia.process.listener.EventListeners import EventListeners
 from livia.process.listener.IOChangeEvent import IOChangeEvent
 from livia.process.listener.IOChangeListener import IOChangeListener
+from livia_ui.gui.configuration.LiveAnalyzerConfiguration import LiveAnalyzerConfiguration
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeEvent import FrameProcessingStatusChangeEvent
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeListener import FrameProcessingStatusChangeListener
 
@@ -34,6 +37,9 @@ class FrameProcessingStatus:
         self._frame_processor: AnalyzerFrameProcessor = self._build_frame_processor(
             frame_input, frame_output,
             live_frame_analyzer if activate_live_analysis else FrameProcessingStatus.NO_CHANGE_LIVE_ANALYZER)
+
+        self._active_live_analyzer_configuration_index = None
+        self._live_analyzer_configurations: List[LiveAnalyzerConfiguration] = []
 
     def _build_frame_processor(self, frame_input: FrameInput, frame_output: FrameOutput,
                                live_frame_analyzer: FrameAnalyzer) -> AnalyzerFrameProcessor:
@@ -98,6 +104,22 @@ class FrameProcessingStatus:
     @property
     def frame_processor(self) -> AnalyzerFrameProcessor:
         return self._frame_processor
+
+    @property
+    def live_analyzer_configurations(self) -> List[LiveAnalyzerConfiguration]:
+        return self._live_analyzer_configurations
+
+    @live_analyzer_configurations.setter
+    def live_analyzer_configurations(self, live_analyzer_configurations: List[LiveAnalyzerConfiguration]):
+        self._live_analyzer_configurations = live_analyzer_configurations
+
+    @property
+    def active_live_analyzer_configuration_index(self) -> int:
+        return self._active_live_analyzer_configuration_index
+
+    @active_live_analyzer_configuration_index.setter
+    def active_live_analyzer_configuration_index(self, index: int):
+        self._active_live_analyzer_configuration_index = index
 
     def change_live_analysis_activation(self, activate: bool):
         if activate:

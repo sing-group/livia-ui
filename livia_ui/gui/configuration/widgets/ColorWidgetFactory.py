@@ -30,11 +30,10 @@ class ColorWidgetFactory(WidgetFactory[Tuple[int, int, int]]):
 
         value = prop.default_value if actual_value is None else actual_value
         if value is not None:
-            widget.setStyleSheet(ColorWidgetFactory.__to_style_sheet(*value))
+            widget.setStyleSheet(ColorWidgetFactory.__to_style_sheet(value[2], value[1], value[0]))
             color_dialog.setCurrentColor(QColor(value[2], value[1], value[0]))
 
-        current_color = color_dialog.currentColor()
-        color_dialog.colorSelected.connect(lambda: widget.setStyleSheet(
+        color_dialog.colorSelected.connect(lambda current_color: widget.setStyleSheet(
             ColorWidgetFactory.__to_style_sheet(current_color.red(), current_color.green(), current_color.blue())))
 
         widget.clicked.connect(lambda: color_dialog.exec_())

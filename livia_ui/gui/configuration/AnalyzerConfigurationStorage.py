@@ -1,16 +1,19 @@
-from typing import TextIO, Optional
-
 from ast import literal_eval
+from typing import List, Any
+from typing import TextIO, Optional
 from xml.etree.ElementTree import Element, SubElement, ParseError
 
 from livia.process.analyzer.FrameAnalyzerManager import FrameAnalyzerManager
+from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata
 from livia_ui.gui import LIVIA_GUI_LOGGER
+from livia_ui.gui.configuration.LiveAnalyzerConfiguration import LiveAnalyzerConfiguration
 from livia_ui.gui.status.FrameProcessingStatus import FrameProcessingStatus
 
 
 class AnalyzerConfigurationStorage:
     def __init__(self, processing_status: FrameProcessingStatus):
         self._processing_status: FrameProcessingStatus = processing_status
+        self._live_analyzer_configurations: List[LiveAnalyzerConfiguration] = []
 
     def load_configuration(self, configuration_root: Element) -> None:
         try:
@@ -22,19 +25,30 @@ class AnalyzerConfigurationStorage:
             if live_analyzer_root is None:
                 return
 
-            analyzer_id = live_analyzer_root.get("id")
+            configurations_root = live_analyzer_root.find("configurations")
+            if configurations_root is None:
+                return
 
-            metadata = FrameAnalyzerManager.get_metadata_by_id(analyzer_id)
-            live_analyzer = metadata.analyzer_class()
+            active_id = live_analyzer_root.get("active")
+            self._processing_status.active_live_analyzer_configuration_index = int(active_id)
 
-            for property_read in live_analyzer_root:
-                property_id = property_read.get("id")
-                prop = metadata.get_property_by_id(property_id)
+            for configuration in configurations_root:
+                live_analyzer = None
+                config_id = configuration.get("id")
+                analyzer_id = configuration.get("analyzer-id")
+                config_name = configuration.get("config-name")
 
-                if prop is not None:
-                    prop_value = property_read.text
+                metadata = FrameAnalyzerManager.get_metadata_by_id(analyzer_id)
+                load_active_analyzer: bool = config_id == active_id
+                if load_active_analyzer:
+                    live_analyzer = metadata.analyzer_class()
 
-                    if prop_value is not None:
+                params: List[(FrameAnalyzerPropertyMetadata, Any)] = []
+                for param_read in configuration:
+                    prop = metadata.get_property_by_id(param_read.get("id"))
+                    prop_value = param_read.text
+
+                    if prop is not None and prop_value is not None:
                         # TODO: generalize this
                         if prop.prop_type is TextIO or prop.prop_type is Optional[TextIO]:
                             value = open(prop_value, "r")
@@ -43,34 +57,45 @@ class AnalyzerConfigurationStorage:
                                 value = literal_eval(prop_value)
                             except SyntaxError:
                                 value = prop_value
+                        params.append((prop, value))
 
-                        prop.set_value(live_analyzer, value)
-                else:
-                    LIVIA_GUI_LOGGER.warning(f"Property {property_id} not found")
+                        if load_active_analyzer:
+                            prop.set_value(live_analyzer, value)
+                self._live_analyzer_configurations.append(LiveAnalyzerConfiguration(config_name, analyzer_id, params))
+                if load_active_analyzer:
+                    self._processing_status.live_frame_analyzer = live_analyzer
 
-            self._processing_status.live_frame_analyzer = live_analyzer
+            self._processing_status.live_analyzer_configurations = self._live_analyzer_configurations
         except ParseError:
             LIVIA_GUI_LOGGER.exception("Error parsing analyzer configuration file")
 
     def save_configuration(self, configuration_root: Element) -> None:
-        actual_analyzer = self._processing_status.live_frame_analyzer
-        metadata = FrameAnalyzerManager.get_metadata_for(actual_analyzer)
-
+        self._live_analyzer_configurations = self._processing_status.live_analyzer_configurations
         root = SubElement(configuration_root, "analyzers")
         live_configuration_write = SubElement(root, "live-analyzer")
-        live_configuration_write.set("id", metadata.id)
+        live_configuration_write.set("active", str(self._processing_status.active_live_analyzer_configuration_index))
+        configurations_write = SubElement(live_configuration_write, "configurations")
 
-        metadata = FrameAnalyzerManager.get_metadata_for(actual_analyzer)
+        i = 0
+        for configuration in self._live_analyzer_configurations:
+            analyzer_configuration_write = SubElement(configurations_write, "live-analyzer-configuration")
+            analyzer_configuration_write.set("id", str(i))
+            analyzer_configuration_write.set("analyzer-id", configuration.analyzer_id)
+            analyzer_configuration_write.set("config-name", configuration.configuration_name)
 
-        for prop in metadata.properties:
-            if not prop.hidden:
-                value = getattr(actual_analyzer, prop.name)
-                if prop.prop_type is TextIO or prop.prop_type is Optional[TextIO]:
-                    if prop.default_value != value.name:
-                        property_write = SubElement(live_configuration_write, "property")
-                        property_write.set("id", prop.id)
-                        property_write.text = value.name
-                elif prop.default_value != value:
-                    property_write = SubElement(live_configuration_write, "property")
-                    property_write.set("id", prop.id)
-                    property_write.text = str(value)
+            for parameter in configuration.parameters:
+                if not parameter[0].hidden:
+                    if parameter[0].prop_type is TextIO or parameter[0].prop_type is Optional[TextIO]:
+                        if parameter[0].default_value != parameter[1].name:
+                            parameter_write = SubElement(analyzer_configuration_write, "parameter")
+                            parameter_write.set("id", parameter[0].id)
+                            parameter_write.text = parameter[1].name
+
+                    elif parameter[0].default_value != parameter[1]:
+                        parameter_write = SubElement(analyzer_configuration_write, "parameter")
+                        parameter_write.set("id", parameter[0].id)
+                        parameter_write.text = str(parameter[1])
+            i += 1
+
+
+
