@@ -30,18 +30,12 @@ class AnalyzerConfigurationStorage:
                 return
 
             active_id = live_analyzer_root.get("active")
-            self._processing_status.active_live_analyzer_configuration_index = int(active_id)
 
             for configuration in configurations_root:
-                live_analyzer = None
-                config_id = configuration.get("id")
                 analyzer_id = configuration.get("analyzer-id")
                 config_name = configuration.get("config-name")
 
                 metadata = FrameAnalyzerManager.get_metadata_by_id(analyzer_id)
-                load_active_analyzer: bool = config_id == active_id
-                if load_active_analyzer:
-                    live_analyzer = metadata.analyzer_class()
 
                 params: List[(FrameAnalyzerPropertyMetadata, Any)] = []
                 for param_read in configuration:
@@ -58,14 +52,9 @@ class AnalyzerConfigurationStorage:
                             except SyntaxError:
                                 value = prop_value
                         params.append((prop, value))
-
-                        if load_active_analyzer:
-                            prop.set_value(live_analyzer, value)
                 self._live_analyzer_configurations.append(LiveAnalyzerConfiguration(config_name, analyzer_id, params))
-                if load_active_analyzer:
-                    self._processing_status.live_frame_analyzer = live_analyzer
 
-            self._processing_status.live_analyzer_configurations = self._live_analyzer_configurations
+            self._processing_status.set_live_analyzer_configurations(self._live_analyzer_configurations, int(active_id))
         except ParseError:
             LIVIA_GUI_LOGGER.exception("Error parsing analyzer configuration file")
 

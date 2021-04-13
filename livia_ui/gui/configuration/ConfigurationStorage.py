@@ -43,7 +43,9 @@ class ConfigurationStorage:
                 )
                 self._livia_status.video_stream_status.add_frame_processing_status_change_listener(
                     build_listener(FrameProcessingStatusChangeListener,
-                                   live_frame_analyzer_changed=self._on_save_configuration)
+                                   live_frame_analyzer_changed=self._on_save_configuration,
+                                   live_frame_analyzer_configurations_changed=self._on_save_configuration,
+                                   live_frame_analyzer_configuration_index_changed=self._on_save_configuration)
                 )
 
     def _on_save_configuration(self, event: ShortcutStatusChangeEvent) -> None:

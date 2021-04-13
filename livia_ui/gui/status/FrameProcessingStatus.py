@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from livia.input.FrameInput import FrameInput
 from livia.input.NoFrameInput import NoFrameInput
@@ -7,6 +7,8 @@ from livia.output.NoFrameOutput import NoFrameOutput
 from livia.process.analyzer.AnalyzerFrameProcessor import AnalyzerFrameProcessor
 from livia.process.analyzer.AsyncAnalyzerFrameProcessor import AsyncAnalyzerFrameProcessor
 from livia.process.analyzer.FrameAnalyzer import FrameAnalyzer
+from livia.process.analyzer.FrameAnalyzerManager import FrameAnalyzerManager
+from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerMetadata
 from livia.process.analyzer.NoChangeFrameAnalyzer import NoChangeFrameAnalyzer
 from livia.process.analyzer.listener.FrameAnalyzerChangeEvent import FrameAnalyzerChangeEvent
 from livia.process.analyzer.listener.FrameAnalyzerChangeListener import FrameAnalyzerChangeListener
@@ -14,6 +16,7 @@ from livia.process.listener import build_listener
 from livia.process.listener.EventListeners import EventListeners
 from livia.process.listener.IOChangeEvent import IOChangeEvent
 from livia.process.listener.IOChangeListener import IOChangeListener
+from livia_ui.gui import LIVIA_GUI_LOGGER
 from livia_ui.gui.configuration.LiveAnalyzerConfiguration import LiveAnalyzerConfiguration
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeEvent import FrameProcessingStatusChangeEvent
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeListener import FrameProcessingStatusChangeListener
@@ -75,19 +78,6 @@ class FrameProcessingStatus:
     def live_frame_analyzer(self) -> FrameAnalyzer:
         return self._live_frame_analyzer
 
-    @live_frame_analyzer.setter
-    def live_frame_analyzer(self, frame_analyzer: FrameAnalyzer):
-        if self._live_frame_analyzer != frame_analyzer:
-            if self.is_live_analysis_active():
-                # self._live_frame_analyzer will be updated in _on_analyzer_changed event
-                self._frame_processor.frame_analyzer = frame_analyzer
-            else:
-                old = self._live_frame_analyzer
-                self._live_frame_analyzer = frame_analyzer
-
-                event = FrameProcessingStatusChangeEvent(self, self._live_frame_analyzer, old)
-                self._listeners.notify(FrameProcessingStatusChangeListener.live_frame_analyzer_changed, event)
-
     @property
     def static_frame_analyzer(self) -> FrameAnalyzer:
         return self._static_frame_analyzer
@@ -109,17 +99,34 @@ class FrameProcessingStatus:
     def live_analyzer_configurations(self) -> List[LiveAnalyzerConfiguration]:
         return self._live_analyzer_configurations
 
-    @live_analyzer_configurations.setter
-    def live_analyzer_configurations(self, live_analyzer_configurations: List[LiveAnalyzerConfiguration]):
-        self._live_analyzer_configurations = live_analyzer_configurations
+    def set_live_analyzer_configurations(self, live_analyzer_configurations: List[LiveAnalyzerConfiguration],
+                                         index_selected: Optional[int] = None):
+        if live_analyzer_configurations is None or live_analyzer_configurations == []:
+            self.deactivate_live_analysis()
+        else:
+            old = self._live_analyzer_configurations
+            self._live_analyzer_configurations = live_analyzer_configurations
+            event = FrameProcessingStatusChangeEvent(self, self._live_analyzer_configurations, old)
+            self._listeners.notify(FrameProcessingStatusChangeListener.live_frame_analyzer_configurations_changed,
+                                   event)
+        if index_selected is not None:
+            self.active_live_analyzer_configuration_index = index_selected
 
     @property
-    def active_live_analyzer_configuration_index(self) -> int:
+    def active_live_analyzer_configuration_index(self) -> Optional[int]:
         return self._active_live_analyzer_configuration_index
 
     @active_live_analyzer_configuration_index.setter
-    def active_live_analyzer_configuration_index(self, index: int):
-        self._active_live_analyzer_configuration_index = index
+    def active_live_analyzer_configuration_index(self, index: Optional[int] = None):
+        if index is None:
+            self.deactivate_live_analysis()
+        else:
+            old = self._active_live_analyzer_configuration_index
+            self._active_live_analyzer_configuration_index = index
+            event = FrameProcessingStatusChangeEvent(self, self._active_live_analyzer_configuration_index, old)
+            self._listeners.notify(FrameProcessingStatusChangeListener.live_frame_analyzer_configuration_index_changed,
+                                   event)
+            self._build_live_analyzer()
 
     def change_live_analysis_activation(self, activate: bool):
         if activate:
@@ -176,3 +183,38 @@ class FrameProcessingStatus:
             activation_event = FrameProcessingStatusChangeEvent(self, True, False)
             self._listeners.notify(FrameProcessingStatusChangeListener.live_frame_analyzer_activation_changed,
                                    activation_event)
+
+    def _build_live_analyzer(self):
+        if self._active_live_analyzer_configuration_index < len(self._live_analyzer_configurations):
+            analyzer_metadata: FrameAnalyzerMetadata = FrameAnalyzerManager.get_metadata_by_id(
+                self._live_analyzer_configurations[self._active_live_analyzer_configuration_index].analyzer_id)
+
+            if analyzer_metadata in FrameAnalyzerManager.list_analyzers():
+                analyzer = analyzer_metadata.analyzer_class()
+
+                if isinstance(self._live_frame_analyzer, analyzer_metadata.analyzer_class):
+                    analyzer_old = self._live_frame_analyzer
+
+                    for prop in analyzer_metadata.properties:
+                        prop.set_value(analyzer, prop.get_value(analyzer_old))
+
+                for prop in analyzer_metadata.properties:
+                    for modified_prop in self._live_analyzer_configurations[
+                        self._active_live_analyzer_configuration_index].parameters:
+                        if modified_prop[0].id == prop.id:
+                            prop.set_value(analyzer, modified_prop[1])
+
+                if self.is_live_analysis_active():
+                    # self._live_frame_analyzer will be updated in _on_analyzer_changed event
+                    self._frame_processor.frame_analyzer = analyzer
+                else:
+                    old = self._live_frame_analyzer
+                    self._live_frame_analyzer = analyzer
+
+                    event = FrameProcessingStatusChangeEvent(self, self._live_frame_analyzer, old)
+                    self._listeners.notify(FrameProcessingStatusChangeListener.live_frame_analyzer_changed, event)
+
+            else:
+                LIVIA_GUI_LOGGER.exception("Error Configuring live analyzer")
+        else:
+            LIVIA_GUI_LOGGER.exception("Error Live analyzer configuration not found")
