@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Tuple
+from typing import TYPE_CHECKING, Dict, Tuple, Optional, List
 
 from PySide2.QtCore import Signal, Slot, QCoreApplication
 from PySide2.QtWidgets import QMenu, QAction, QFileDialog, QMessageBox
@@ -15,6 +15,9 @@ from livia.process.listener import build_listener
 from livia.process.listener.ProcessChangeEvent import ProcessChangeEvent
 from livia.process.listener.ProcessChangeListener import ProcessChangeListener
 from livia_ui.gui import LIVIA_GUI_LOGGER
+from livia_ui.gui.configuration.ConfigureShortcutsDialog import ConfigureShortcutsDialog
+from livia_ui.gui.configuration.ConfigureVideoAnalyzerDialog import ConfigureVideoAnalyzerDialog
+from livia_ui.gui.configuration.FrameAnalyzerConfiguration import FrameAnalyzerConfiguration
 from livia_ui.gui.shortcuts.DefaultShortcutAction import DefaultShortcutAction
 from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
 from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
@@ -25,8 +28,6 @@ from livia_ui.gui.status.listener.ShortcutStatusChangeListener import ShortcutSt
 from livia_ui.gui.views.builders.GuiBuilderFactory import GuiBuilderFactory
 from livia_ui.gui.views.builders.MenuBarBuilder import MenuBarBuilder
 from livia_ui.gui.views.utils.AnalyzeImageDialog import AnalyzeImageDialog
-from livia_ui.gui.configuration.ConfigureShortcutsDialog import ConfigureShortcutsDialog
-from livia_ui.gui.configuration.ConfigureVideoAnalyzerDialog import ConfigureVideoAnalyzerDialog
 from livia_ui.gui.views.utils.DefaultDeviceProvider import DefaultDeviceProvider
 from livia_ui.gui.views.utils.DeviceProvider import DeviceProvider
 from livia_ui.gui.views.utils.SelectDeviceDialog import SelectDeviceDialog
@@ -85,8 +86,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._analyze_image_dialog = AnalyzeImageDialog(self._livia_status.video_stream_status, self._livia_window)
         self._configure_shortcuts_dialog = ConfigureShortcutsDialog(self._livia_status.shortcut_status,
                                                                     self._livia_window)
-        self._configure_video_analyzer_dialog = ConfigureVideoAnalyzerDialog(self._livia_status.video_stream_status,
-                                                                             self._livia_window)
+        self._configure_video_analyzer_dialog = ConfigureVideoAnalyzerDialog(self._livia_window)
 
         self._add_file_menu()
         self._add_video_menu()
@@ -423,7 +423,23 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._configure_shortcuts_dialog.open()
 
     def _on_configure_analyzers(self):
-        self._configure_video_analyzer_dialog.open()
+        self._configure_video_analyzer_dialog.open(
+            self._livia_status.video_stream_status.live_analyzer_configurations,
+            self._livia_status.video_stream_status.active_live_analyzer_configuration_index,
+            self._on_active_live_analyzer_configuration_index_changed,
+            self._on_set_live_analyzer_configurations
+        )
+
+    @Slot(int)
+    def _on_active_live_analyzer_configuration_index_changed(self, index: Optional[int] = None):
+        self._livia_status.video_stream_status.active_live_analyzer_configuration_index = index
+
+    @Slot(list, int)
+    def _on_set_live_analyzer_configurations(self,
+                                             live_analyzer_configurations: List[FrameAnalyzerConfiguration],
+                                             index_selected: Optional[int] = None):
+        self._livia_status.video_stream_status.set_live_analyzer_configurations(live_analyzer_configurations,
+                                                                                index_selected)
 
     def __change_frame_input(self, frame_input: FrameInput):
         status = self._livia_status.video_stream_status

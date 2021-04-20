@@ -1,5 +1,7 @@
 from typing import List, Optional
 
+from PySide2.QtCore import Slot
+
 from livia.input.FrameInput import FrameInput
 from livia.input.NoFrameInput import NoFrameInput
 from livia.output.FrameOutput import FrameOutput
@@ -17,7 +19,7 @@ from livia.process.listener.EventListeners import EventListeners
 from livia.process.listener.IOChangeEvent import IOChangeEvent
 from livia.process.listener.IOChangeListener import IOChangeListener
 from livia_ui.gui import LIVIA_GUI_LOGGER
-from livia_ui.gui.configuration.LiveAnalyzerConfiguration import LiveAnalyzerConfiguration
+from livia_ui.gui.configuration.FrameAnalyzerConfiguration import FrameAnalyzerConfiguration
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeEvent import FrameProcessingStatusChangeEvent
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeListener import FrameProcessingStatusChangeListener
 
@@ -42,7 +44,7 @@ class FrameProcessingStatus:
             live_frame_analyzer if activate_live_analysis else FrameProcessingStatus.NO_CHANGE_LIVE_ANALYZER)
 
         self._active_live_analyzer_configuration_index = None
-        self._live_analyzer_configurations: List[LiveAnalyzerConfiguration] = []
+        self._live_analyzer_configurations: List[FrameAnalyzerConfiguration] = []
 
     def _build_frame_processor(self, frame_input: FrameInput, frame_output: FrameOutput,
                                live_frame_analyzer: FrameAnalyzer) -> AnalyzerFrameProcessor:
@@ -96,10 +98,10 @@ class FrameProcessingStatus:
         return self._frame_processor
 
     @property
-    def live_analyzer_configurations(self) -> List[LiveAnalyzerConfiguration]:
+    def live_analyzer_configurations(self) -> List[FrameAnalyzerConfiguration]:
         return self._live_analyzer_configurations
 
-    def set_live_analyzer_configurations(self, live_analyzer_configurations: List[LiveAnalyzerConfiguration],
+    def set_live_analyzer_configurations(self, live_analyzer_configurations: List[FrameAnalyzerConfiguration],
                                          index_selected: Optional[int] = None):
         if live_analyzer_configurations is None or live_analyzer_configurations == []:
             self.deactivate_live_analysis()

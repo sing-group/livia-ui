@@ -3,7 +3,7 @@ from typing import List, Any, Tuple
 from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata
 
 
-class LiveAnalyzerConfiguration:
+class FrameAnalyzerConfiguration:
     def __init__(self, config_name: str, analyzer_id: str,
                  analyzer_params: List[Tuple[FrameAnalyzerPropertyMetadata, Any]]):
         self._configuration_name: str = config_name

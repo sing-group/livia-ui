@@ -1,22 +1,23 @@
 import os
-from typing import List
+from typing import List, Callable, Optional
 
-from PySide2.QtCore import QCoreApplication, Qt
-from PySide2.QtGui import QIcon
+from PySide2.QtCore import QCoreApplication, Qt, Signal
+from PySide2.QtGui import QIcon, QHideEvent, QCloseEvent
 from PySide2.QtWidgets import QDialog, QVBoxLayout, QComboBox, QFormLayout, QDialogButtonBox, QLabel, QWidget, \
-    QHBoxLayout, QToolButton, QLineEdit, QGroupBox, QPushButton, QSizePolicy, QMessageBox, QScrollArea
+    QHBoxLayout, QToolButton, QLineEdit, QGroupBox, QMessageBox
 
 from livia.process.analyzer.FrameAnalyzerManager import FrameAnalyzerManager
-from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata, FrameAnalyzerMetadata
-from livia_ui.gui import LIVIA_GUI_LOGGER
-from livia_ui.gui.configuration.LiveAnalyzerConfiguration import LiveAnalyzerConfiguration
+from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata
+from livia_ui.gui.configuration.FrameAnalyzerConfiguration import FrameAnalyzerConfiguration
 from livia_ui.gui.configuration.widgets.WidgetsFactory import WidgetsFactory
-from livia_ui.gui.status.FrameProcessingStatus import FrameProcessingStatus
 from livia_ui.gui.views.utils.BorderLayout import BorderLayout
 
 
 class ConfigureVideoAnalyzerDialog(QDialog):
-    def __init__(self, frame_processing_status: FrameProcessingStatus, *args, **kwargs):
+    _index_changed_signal: Signal = Signal(int)
+    _configurations_changed_signal = Signal(list, int)
+
+    def __init__(self, *args, **kwargs):
         super(ConfigureVideoAnalyzerDialog, self).__init__(*args, **kwargs)
         self.setWindowTitle(QCoreApplication.translate(self.__class__.__name__, "Configure Video Analyzer"))
         self.setWindowModality(Qt.ApplicationModal)
@@ -24,15 +25,16 @@ class ConfigureVideoAnalyzerDialog(QDialog):
 
         self._widgets_factory = WidgetsFactory()
 
-        self._frame_processing_status = frame_processing_status
-        self._live_analyzer_configurations: List[LiveAnalyzerConfiguration] = None
+        self._configurations: List[FrameAnalyzerConfiguration] = None
+        self._configurations_received: List[FrameAnalyzerConfiguration] = None
         self._active_configuration_index: int = None
         self._selected_configuration_index: int = None
-        self._update_live_analyzer_configurations()
+        self._update_analyzer_configurations()
 
         self._updating_configurations_combo_box: bool = False
+        self._signals_disconnected: bool = False
 
-        self._modifications: LiveAnalyzerConfiguration = None
+        self._modifications: FrameAnalyzerConfiguration = None
 
         layout = QVBoxLayout()
 
@@ -53,8 +55,6 @@ class ConfigureVideoAnalyzerDialog(QDialog):
         form_layout_top.addRow(QLabel(QCoreApplication.translate(self.__class__.__name__, "Analyzer:")),
                                widgets_layout)
         form_panel_top.setLayout(form_layout_top)
-
-        self._update_configurations_combo_box()
 
         self._group_box_layout = QGroupBox()
         form_panel = QWidget()
@@ -84,8 +84,8 @@ class ConfigureVideoAnalyzerDialog(QDialog):
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         self._apply_button.clicked.connect(self._activate_config)
-        self._save_changes_button.clicked.connect(self._save_changes)
-        self._remove_configuration_button.clicked.connect(self._remove_configuration)
+        self._save_changes_button.clicked.connect(self._on_save_changes)
+        self._remove_configuration_button.clicked.connect(self._on_remove_configuration)
 
         layout.addWidget(form_panel_top)
         layout.addWidget(self._group_box_layout)
@@ -93,45 +93,43 @@ class ConfigureVideoAnalyzerDialog(QDialog):
 
         self.setLayout(layout)
 
-        self._update_form()
-
         self._analyzer_combo_box.currentIndexChanged.connect(self._on_analyzer_changed)
 
     def _update_configurations_combo_box(self):
         self._updating_configurations_combo_box = True
         self._analyzer_combo_box.clear()
-        for analyzer in self._live_analyzer_configurations:
+        for analyzer in self._configurations:
             self._analyzer_combo_box.addItem(analyzer.configuration_name, analyzer)
         self._updating_configurations_combo_box = False
 
         if self._selected_configuration_index is not None:
             self._analyzer_combo_box.setCurrentIndex(self._selected_configuration_index)
 
-    def _update_live_analyzer_configurations(self):
-        self._live_analyzer_configurations = self._frame_processing_status.live_analyzer_configurations.copy()
-        self._active_configuration_index = self._frame_processing_status.active_live_analyzer_configuration_index
+    def _update_analyzer_configurations(self):
+        if self._configurations_received is not None:
+            self._configurations = self._configurations_received.copy()
 
-    def _save_changes(self):
-        for prop_saved in self._live_analyzer_configurations[self._selected_configuration_index].parameters:
+    def _on_save_changes(self):
+        for prop_saved in self._configurations[self._selected_configuration_index].parameters:
             if len(self._modifications.parameters) != 0 and prop_saved[0] in self._modifications.parameters[0]:
-                self._live_analyzer_configurations[self._selected_configuration_index].parameters.remove(prop_saved)
+                self._configurations[self._selected_configuration_index].parameters.remove(prop_saved)
         for prop_configured in self._modifications.parameters:
-            self._live_analyzer_configurations[self._selected_configuration_index].parameters.append(
+            self._configurations[self._selected_configuration_index].parameters.append(
                 (prop_configured[0], prop_configured[1]))
 
-        self._live_analyzer_configurations[self._selected_configuration_index].configuration_name = \
+        self._configurations[self._selected_configuration_index].configuration_name = \
             self._modifications.configuration_name
         if self._is_current_analyzer_selected():
-            self._frame_processing_status.set_live_analyzer_configurations(self._live_analyzer_configurations,
-                                                                           self._selected_configuration_index)
+            self._configurations_changed_signal.emit(self._configurations,
+                                                     self._selected_configuration_index)
         else:
-            self._frame_processing_status.set_live_analyzer_configurations(self._live_analyzer_configurations,
-                                                                           self._active_configuration_index)
+            self._configurations_changed_signal.emit(self._configurations,
+                                                     self._active_configuration_index)
 
+        self._update_configurations_combo_box()
         self._save_changes_button.setEnabled(False)
-        self._update_live_analyzer_configurations()
 
-    def _remove_configuration(self):
+    def _on_remove_configuration(self):
         message = QMessageBox()
         message.setIcon(QMessageBox.Warning)
 
@@ -140,20 +138,17 @@ class ConfigureVideoAnalyzerDialog(QDialog):
         message.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
 
         if message.exec_() == QMessageBox.Ok:
-            self._live_analyzer_configurations.remove(self._live_analyzer_configurations
-                                                      [self._selected_configuration_index])
-
+            self._configurations.remove(self._configurations[self._selected_configuration_index])
             if self._is_current_analyzer_selected():
-                self._frame_processing_status.set_live_analyzer_configurations(self._live_analyzer_configurations, 0)
-            else:
-                new_active_index = self._live_analyzer_configurations.index(self._frame_processing_status.
-                                                                            live_analyzer_configurations
-                                                                            [self._active_configuration_index])
-                self._frame_processing_status.set_live_analyzer_configurations(self._live_analyzer_configurations,
-                                                                               new_active_index)
+                self._configurations_changed_signal.emit(self._configurations, 0)
+                self._analyzer_combo_box.removeItem(self._selected_configuration_index)
+                self._selected_configuration_index = self._active_configuration_index = 0
 
-            self._update_live_analyzer_configurations()
-            self._selected_configuration_index = self._active_configuration_index
+            else:
+                self._analyzer_combo_box.removeItem(self._selected_configuration_index)
+                self._configurations_changed_signal.emit(self._configurations, self._active_configuration_index)
+                self._selected_configuration_index = self._active_configuration_index
+
             self._update_configurations_combo_box()
             self._update_form()
 
@@ -162,28 +157,49 @@ class ConfigureVideoAnalyzerDialog(QDialog):
             self._activate_config()
         super(ConfigureVideoAnalyzerDialog, self).accept()
 
-    def open(self):
+    def open(self,
+             configurations: List[FrameAnalyzerConfiguration],
+             active_configuration_index: int,
+             index_changed_callback: Callable[[int], None],
+             configurations_changed_callback: Callable[[List[FrameAnalyzerConfiguration], int], None]):
+        self._configurations_received = configurations
+        self._active_configuration_index = active_configuration_index
+
+        self._index_changed_signal.connect(index_changed_callback)
+        self._configurations_changed_signal.connect(configurations_changed_callback)
         self._analyzer_combo_box.clear()
-        self._update_live_analyzer_configurations()
+        self._update_analyzer_configurations()
         self._selected_configuration_index = self._active_configuration_index
 
         self._update_configurations_combo_box()
         self._update_form()
 
+        self._signals_disconnected = False
+
         super(ConfigureVideoAnalyzerDialog, self).open()
 
-    def _activate_config(self):
-        self._frame_processing_status.active_live_analyzer_configuration_index = self._selected_configuration_index
+    def hideEvent(self, event: QHideEvent):
+        if not self._signals_disconnected:
+            self._configurations_changed_signal.disconnect()
+            self._index_changed_signal.disconnect()
 
-        self._update_configurations_combo_box()
+            self._signals_disconnected = True
+
+        self._configurations_received = None
+        self._active_configuration_index = None
+
+    def _activate_config(self):
+        self._index_changed_signal.emit(self._selected_configuration_index)
+        self._active_configuration_index = self._selected_configuration_index
+
         self._apply_button.setEnabled(False)
-        self._update_live_analyzer_configurations()
+        self._update_analyzer_configurations()
 
     def _on_analyzer_changed(self, index: int):
         if not self._updating_configurations_combo_box:
-            self._modifications = LiveAnalyzerConfiguration(self._live_analyzer_configurations[index].configuration_name,
-                                                            self._live_analyzer_configurations[index].analyzer_id,
-                                                            [])
+            self._modifications = FrameAnalyzerConfiguration(self._configurations[index].configuration_name,
+                                                             self._configurations[index].analyzer_id,
+                                                             [])
             self._selected_configuration_index = index
             self._apply_button.setEnabled(not self._is_current_analyzer_selected())
             self._update_form()
@@ -205,9 +221,9 @@ class ConfigureVideoAnalyzerDialog(QDialog):
             if len(name_input.text()) < 1:
                 name_input.setStyleSheet('background-color: red')
                 return
-            self._live_analyzer_configurations.append(LiveAnalyzerConfiguration(name_input.text(),
-                                                                                combo_box_model.currentData().id,
-                                                                                []))
+            self._configurations.append(FrameAnalyzerConfiguration(name_input.text(),
+                                                                   combo_box_model.currentData().id,
+                                                                   []))
             self._selected_configuration_index = self._analyzer_combo_box.count()
             self._update_configurations_combo_box()
             self._save_changes_button.setEnabled(True)
@@ -245,9 +261,10 @@ class ConfigureVideoAnalyzerDialog(QDialog):
         for row_num in range(0, self._form_layout.rowCount()):
             self._form_layout.removeRow(0)
 
-        current_analyzer = self._frame_processing_status.live_frame_analyzer
+        if self._active_configuration_index in range(0, len(self._configurations)):
+            current_analyzer = self._configurations[self._active_configuration_index]
 
-        selected_analyzer: LiveAnalyzerConfiguration = self._analyzer_combo_box.currentData()
+        selected_analyzer: FrameAnalyzerConfiguration = self._analyzer_combo_box.currentData()
         if selected_analyzer is not None:
             self._configuration_name_edit = QLineEdit(selected_analyzer.configuration_name)
             self._configuration_name_edit.textChanged.connect(self._on_configuration_name_changed)
@@ -278,7 +295,13 @@ class ConfigureVideoAnalyzerDialog(QDialog):
                 label = property_data.descriptive_name
 
                 if self._is_current_analyzer_selected():
-                    current_value = property_data.get_value(current_analyzer)
+                    for param in current_analyzer.parameters:
+                        if param[0] == property_data:
+                            current_value = property_value
+                            break
+                        else:
+                            current_value = None
+
                     widget = self._widgets_factory.get_widget(property_data, self._on_parameter_changed, current_value)
                 else:
                     if property_value is not None:

@@ -6,14 +6,14 @@ from xml.etree.ElementTree import Element, SubElement, ParseError
 from livia.process.analyzer.FrameAnalyzerManager import FrameAnalyzerManager
 from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerPropertyMetadata
 from livia_ui.gui import LIVIA_GUI_LOGGER
-from livia_ui.gui.configuration.LiveAnalyzerConfiguration import LiveAnalyzerConfiguration
+from livia_ui.gui.configuration.FrameAnalyzerConfiguration import FrameAnalyzerConfiguration
 from livia_ui.gui.status.FrameProcessingStatus import FrameProcessingStatus
 
 
 class AnalyzerConfigurationStorage:
     def __init__(self, processing_status: FrameProcessingStatus):
         self._processing_status: FrameProcessingStatus = processing_status
-        self._live_analyzer_configurations: List[LiveAnalyzerConfiguration] = []
+        self._live_analyzer_configurations: List[FrameAnalyzerConfiguration] = []
 
     def load_configuration(self, configuration_root: Element) -> None:
         try:
@@ -52,7 +52,7 @@ class AnalyzerConfigurationStorage:
                             except SyntaxError:
                                 value = prop_value
                         params.append((prop, value))
-                self._live_analyzer_configurations.append(LiveAnalyzerConfiguration(config_name, analyzer_id, params))
+                self._live_analyzer_configurations.append(FrameAnalyzerConfiguration(config_name, analyzer_id, params))
 
             self._processing_status.set_live_analyzer_configurations(self._live_analyzer_configurations, int(active_id))
         except ParseError:
