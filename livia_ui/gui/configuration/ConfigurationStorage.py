@@ -45,7 +45,9 @@ class ConfigurationStorage:
                     build_listener(FrameProcessingStatusChangeListener,
                                    live_frame_analyzer_changed=self._on_save_configuration,
                                    live_frame_analyzer_configurations_changed=self._on_save_configuration,
-                                   live_frame_analyzer_configuration_index_changed=self._on_save_configuration)
+                                   live_frame_analyzer_configuration_index_changed=self._on_save_configuration,
+                                   static_frame_analyzer_configurations_changed=self._on_save_configuration,
+                                   static_frame_analyzer_configuration_index_changed=self._on_save_configuration)
                 )
 
     def _on_save_configuration(self, event: ShortcutStatusChangeEvent) -> None:

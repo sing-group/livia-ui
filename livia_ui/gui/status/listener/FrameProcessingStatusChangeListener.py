@@ -30,3 +30,11 @@ class FrameProcessingStatusChangeListener(EventListener):
 
     def live_frame_analyzer_configuration_index_changed(self, event: FrameProcessingStatusChangeEvent[int]):
         pass
+
+    def static_frame_analyzer_configurations_changed(self, event: FrameProcessingStatusChangeEvent[
+        List[FrameAnalyzerConfiguration]]):
+        pass
+
+    def static_frame_analyzer_configuration_index_changed(self, event: FrameProcessingStatusChangeEvent[int]):
+        pass
+

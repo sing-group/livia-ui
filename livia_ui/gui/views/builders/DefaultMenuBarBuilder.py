@@ -107,7 +107,8 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._play_action.triggered.connect(self._on_toggle_play)
         self._analyze_image_action.triggered.connect(self._on_analyze_image)
         self._configure_shortcuts_action.triggered.connect(self._on_configure_shortcuts)
-        self._configure_video_analyzer_action.triggered.connect(self._on_configure_analyzers)
+        self._configure_video_analyzer_action.triggered.connect(self._on_configure_live_analyzers)
+        self._configure_image_analyzer_action.triggered.connect(self._on_configure_static_analyzers)
 
     def _connect_signals(self):
         self._check_play_action_signal.connect(self._on_check_play_action_signal)
@@ -422,12 +423,13 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _on_configure_shortcuts(self):
         self._configure_shortcuts_dialog.open()
 
-    def _on_configure_analyzers(self):
+    def _on_configure_live_analyzers(self):
         self._configure_video_analyzer_dialog.open(
             self._livia_status.video_stream_status.live_analyzer_configurations,
             self._livia_status.video_stream_status.active_live_analyzer_configuration_index,
             self._on_active_live_analyzer_configuration_index_changed,
-            self._on_set_live_analyzer_configurations
+            self._on_set_live_analyzer_configurations,
+            "Configure Video Analyzer"
         )
 
     @Slot(int)
@@ -440,6 +442,26 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
                                              index_selected: Optional[int] = None):
         self._livia_status.video_stream_status.set_live_analyzer_configurations(live_analyzer_configurations,
                                                                                 index_selected)
+
+    def _on_configure_static_analyzers(self):
+        self._configure_video_analyzer_dialog.open(
+            self._livia_status.video_stream_status.static_analyzer_configurations,
+            self._livia_status.video_stream_status.active_static_analyzer_configuration_index,
+            self._on_active_static_analyzer_configuration_index_changed,
+            self._on_set_static_analyzer_configurations,
+            "Configure Image Analyzer"
+        )
+
+    @Slot(int)
+    def _on_active_static_analyzer_configuration_index_changed(self, index: Optional[int] = None):
+        self._livia_status.video_stream_status.active_static_analyzer_configuration_index = index
+
+    @Slot(list, int)
+    def _on_set_static_analyzer_configurations(self,
+                                               static_analyzer_configurations: List[FrameAnalyzerConfiguration],
+                                               index_selected: Optional[int] = None):
+        self._livia_status.video_stream_status.set_static_analyzer_configurations(static_analyzer_configurations,
+                                                                                  index_selected)
 
     def __change_frame_input(self, frame_input: FrameInput):
         status = self._livia_status.video_stream_status

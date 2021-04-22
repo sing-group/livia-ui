@@ -19,7 +19,7 @@ class ConfigureVideoAnalyzerDialog(QDialog):
 
     def __init__(self, *args, **kwargs):
         super(ConfigureVideoAnalyzerDialog, self).__init__(*args, **kwargs)
-        self.setWindowTitle(QCoreApplication.translate(self.__class__.__name__, "Configure Video Analyzer"))
+        self.setWindowTitle(QCoreApplication.translate(self.__class__.__name__, "Configure Analyzer"))
         self.setWindowModality(Qt.ApplicationModal)
         self.setMinimumSize(600, 400)
 
@@ -161,7 +161,11 @@ class ConfigureVideoAnalyzerDialog(QDialog):
              configurations: List[FrameAnalyzerConfiguration],
              active_configuration_index: int,
              index_changed_callback: Callable[[int], None],
-             configurations_changed_callback: Callable[[List[FrameAnalyzerConfiguration], int], None]):
+             configurations_changed_callback: Callable[[List[FrameAnalyzerConfiguration], int], None],
+             window_title: Optional[str] = None):
+        if window_title is not None:
+            self.setWindowTitle(window_title)
+
         self._configurations_received = configurations
         self._active_configuration_index = active_configuration_index
 
@@ -215,6 +219,7 @@ class ConfigureVideoAnalyzerDialog(QDialog):
 
     def _on_configuration_name_changed(self, new_name: str):
         self._modifications.configuration_name = new_name
+        self._save_changes_button.setEnabled(True)
 
     def _on_add_configuration(self):
         def accepted():
@@ -295,12 +300,11 @@ class ConfigureVideoAnalyzerDialog(QDialog):
                 label = property_data.descriptive_name
 
                 if self._is_current_analyzer_selected():
+                    current_value = None
                     for param in current_analyzer.parameters:
                         if param[0] == property_data:
                             current_value = property_value
                             break
-                        else:
-                            current_value = None
 
                     widget = self._widgets_factory.get_widget(property_data, self._on_parameter_changed, current_value)
                 else:

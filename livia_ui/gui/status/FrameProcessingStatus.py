@@ -1,7 +1,5 @@
 from typing import List, Optional
 
-from PySide2.QtCore import Slot
-
 from livia.input.FrameInput import FrameInput
 from livia.input.NoFrameInput import NoFrameInput
 from livia.output.FrameOutput import FrameOutput
@@ -44,7 +42,9 @@ class FrameProcessingStatus:
             live_frame_analyzer if activate_live_analysis else FrameProcessingStatus.NO_CHANGE_LIVE_ANALYZER)
 
         self._active_live_analyzer_configuration_index = None
+        self._active_static_analyzer_configuration_index = None
         self._live_analyzer_configurations: List[FrameAnalyzerConfiguration] = []
+        self._static_analyzer_configurations: List[FrameAnalyzerConfiguration] = []
 
     def _build_frame_processor(self, frame_input: FrameInput, frame_output: FrameOutput,
                                live_frame_analyzer: FrameAnalyzer) -> AnalyzerFrameProcessor:
@@ -84,15 +84,6 @@ class FrameProcessingStatus:
     def static_frame_analyzer(self) -> FrameAnalyzer:
         return self._static_frame_analyzer
 
-    @static_frame_analyzer.setter
-    def static_frame_analyzer(self, frame_analyzer: FrameAnalyzer):
-        if self._static_frame_analyzer != frame_analyzer:
-            old = self._static_frame_analyzer
-            self._static_frame_analyzer = frame_analyzer
-
-            event = FrameProcessingStatusChangeEvent(self, self._static_frame_analyzer, old)
-            self._listeners.notify(FrameProcessingStatusChangeListener.static_frame_analyzer_changed, event)
-
     @property
     def frame_processor(self) -> AnalyzerFrameProcessor:
         return self._frame_processor
@@ -129,6 +120,40 @@ class FrameProcessingStatus:
             self._listeners.notify(FrameProcessingStatusChangeListener.live_frame_analyzer_configuration_index_changed,
                                    event)
             self._build_live_analyzer()
+
+    @property
+    def static_analyzer_configurations(self) -> List[FrameAnalyzerConfiguration]:
+        return self._static_analyzer_configurations
+
+    def set_static_analyzer_configurations(self, static_analyzer_configurations: List[FrameAnalyzerConfiguration],
+                                           index_selected: Optional[int] = None):
+        if static_analyzer_configurations is None or static_analyzer_configurations == []:
+            self._static_frame_analyzer = NoChangeFrameAnalyzer()
+        else:
+            old = self._static_analyzer_configurations
+            self._static_analyzer_configurations = static_analyzer_configurations
+            event = FrameProcessingStatusChangeEvent(self, self._static_analyzer_configurations, old)
+            self._listeners.notify(FrameProcessingStatusChangeListener.static_frame_analyzer_configurations_changed,
+                                   event)
+        if index_selected is not None:
+            self.active_static_analyzer_configuration_index = index_selected
+
+    @property
+    def active_static_analyzer_configuration_index(self) -> Optional[int]:
+        return self._active_static_analyzer_configuration_index
+
+    @active_static_analyzer_configuration_index.setter
+    def active_static_analyzer_configuration_index(self, index: Optional[int] = None):
+        if index is None:
+            self._static_frame_analyzer = NoChangeFrameAnalyzer()
+        else:
+            old = self._active_static_analyzer_configuration_index
+            self._active_static_analyzer_configuration_index = index
+            event = FrameProcessingStatusChangeEvent(self, self._active_static_analyzer_configuration_index, old)
+            self._listeners.notify(
+                FrameProcessingStatusChangeListener.static_frame_analyzer_configuration_index_changed,
+                event)
+            self._build_static_analyzer()
 
     def change_live_analysis_activation(self, activate: bool):
         if activate:
@@ -220,3 +245,34 @@ class FrameProcessingStatus:
                 LIVIA_GUI_LOGGER.exception("Error Configuring live analyzer")
         else:
             LIVIA_GUI_LOGGER.exception("Error Live analyzer configuration not found")
+
+    def _build_static_analyzer(self):
+        if self._active_static_analyzer_configuration_index < len(self._static_analyzer_configurations):
+            analyzer_metadata: FrameAnalyzerMetadata = FrameAnalyzerManager.get_metadata_by_id(
+                self._static_analyzer_configurations[self._active_static_analyzer_configuration_index].analyzer_id)
+
+            if analyzer_metadata in FrameAnalyzerManager.list_analyzers():
+                analyzer = analyzer_metadata.analyzer_class()
+
+                if isinstance(self._static_frame_analyzer, analyzer_metadata.analyzer_class):
+                    analyzer_old = self._static_frame_analyzer
+
+                    for prop in analyzer_metadata.properties:
+                        prop.set_value(analyzer, prop.get_value(analyzer_old))
+
+                for prop in analyzer_metadata.properties:
+                    for modified_prop in self._static_analyzer_configurations[
+                        self._active_static_analyzer_configuration_index].parameters:
+                        if modified_prop[0].id == prop.id:
+                            prop.set_value(analyzer, modified_prop[1])
+
+                old = self._static_frame_analyzer
+                self._static_frame_analyzer = analyzer
+
+                event = FrameProcessingStatusChangeEvent(self, self._static_frame_analyzer, old)
+                self._listeners.notify(FrameProcessingStatusChangeListener.static_frame_analyzer_changed, event)
+
+            else:
+                LIVIA_GUI_LOGGER.exception("Error Configuring static analyzer")
+        else:
+            LIVIA_GUI_LOGGER.exception("Error static analyzer configuration not found")
