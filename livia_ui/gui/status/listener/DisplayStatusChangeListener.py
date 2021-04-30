@@ -16,3 +16,6 @@ class DisplayStatusChangeListener(EventListener):
 
     def window_size_changed(self, event: DisplayStatusChangeEvent[Tuple[int, int]]):
         pass
+
+    def hide_controls_fullscreen_changed(self, event: DisplayStatusChangeEvent[bool]):
+        pass

@@ -70,6 +70,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._toggle_video_analyzer_action: QAction = None
         self._analyze_image_action: QAction = None
         self._fullscreen_action: QAction = None
+        self._hide_controls_fullscreen_action: QAction = None
         self._resizable_action: QAction = None
         self._configure_shortcuts_action: QAction = None
         self._configure_video_analyzer_action: QAction = None
@@ -103,6 +104,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._quit_action.triggered.connect(self._on_quit)
         self._resizable_action.triggered.connect(self._on_toggle_resizable)
         self._fullscreen_action.triggered.connect(self._on_toggle_fullscreen)
+        self._hide_controls_fullscreen_action.triggered.connect(self._on_toggle_hide_controls_fullscreen)
         self._toggle_video_analyzer_action.triggered.connect(self._on_toggle_live_video_analysis)
         self._play_action.triggered.connect(self._on_toggle_play)
         self._analyze_image_action.triggered.connect(self._on_analyze_image)
@@ -121,7 +123,8 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._livia_status.display_status.add_display_status_change_listener(
             build_listener(DisplayStatusChangeListener,
                            fullscreen_changed=self._on_fullscreen_changed,
-                           resizable_changed=self._on_resizable_changed
+                           resizable_changed=self._on_resizable_changed,
+                           hide_controls_fullscreen_changed=self._on_hide_controls_fullscreen_changed
                            )
         )
         self._livia_status.video_stream_status.frame_processor.add_process_change_listener(
@@ -250,10 +253,17 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._fullscreen_action = QAction(self._livia_window)
         self._fullscreen_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_FULLSCREEN))
         self._shortcuts_widgets[self._fullscreen_action] = self._get_shortcuts(DefaultShortcutAction.TOGGLE_FULLSCREEN)
-        self._fullscreen_action.setCheckable(True)
-        self._fullscreen_action.setChecked(self._livia_status.display_status.fullscreen)
         self._fullscreen_action.setObjectName("_menu_bar__fullscreen_action")
         self._fullscreen_action.setText(self._translate("Fullscreen"))
+        self._hide_controls_fullscreen_action = QAction(self._livia_window)
+        self._hide_controls_fullscreen_action.setShortcuts(self._get_shortcuts(
+            DefaultShortcutAction.TOGGLE_HIDE_CONTROLS_FULLSCREEN))
+        self._shortcuts_widgets[self._hide_controls_fullscreen_action] = self._get_shortcuts(
+            DefaultShortcutAction.TOGGLE_HIDE_CONTROLS_FULLSCREEN)
+        self._hide_controls_fullscreen_action.setCheckable(True)
+        self._hide_controls_fullscreen_action.setChecked(self._livia_status.display_status.hide_controls_fullscreen)
+        self._hide_controls_fullscreen_action.setObjectName("_menu_bar__hide_controls_fullscreen_action")
+        self._hide_controls_fullscreen_action.setText(self._translate("Hide Controls Fullscreen"))
         self._resizable_action = QAction(self._livia_window)
         self._resizable_action.setShortcuts(self._get_shortcuts(DefaultShortcutAction.TOGGLE_RESIZABLE))
         self._shortcuts_widgets[self._resizable_action] = self._get_shortcuts(DefaultShortcutAction.TOGGLE_RESIZABLE)
@@ -266,6 +276,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
         self._view_menu.setObjectName("_menu_bar__view_menu")
         self._view_menu.setTitle(self._translate("View"))
         self._view_menu.addAction(self._fullscreen_action)
+        self._view_menu.addAction(self._hide_controls_fullscreen_action)
         self._view_menu.addAction(self._resizable_action)
 
         self._parent_widget.addAction(self._view_menu.menuAction())
@@ -370,6 +381,9 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _on_toggle_fullscreen(self):
         self._livia_status.display_status.toggle_fullscreen()
 
+    def _on_toggle_hide_controls_fullscreen(self):
+        self._livia_status.display_status.toggle_hide_controls_fullscreen()
+
     def _on_toggle_live_video_analysis(self):
         self._livia_status.video_stream_status.change_live_analysis_activation(
             self._toggle_video_analyzer_action.isChecked()
@@ -385,6 +399,14 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
     def _on_fullscreen_changed(self, event: DisplayStatusChangeEvent):
         if self._fullscreen_action.isChecked() != event.value:
             self._check_fullscreen_action_signal.emit(event.value)
+        self._change_visibility(not event.value)
+
+    def _change_visibility(self, visible: bool):
+        self._parent_widget.setVisible(visible)
+
+    def _on_hide_controls_fullscreen_changed(self, event: DisplayStatusChangeEvent):
+        if event.value != self._hide_controls_fullscreen_action.isChecked():
+            self._hide_controls_fullscreen_action.setChecked(event.value)
 
     def _on_resizable_changed(self, event: DisplayStatusChangeEvent):
         if self._resizable_action.isChecked() != event.value:

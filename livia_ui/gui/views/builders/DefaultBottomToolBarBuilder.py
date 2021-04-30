@@ -8,6 +8,8 @@ from PySide2.QtWidgets import QVBoxLayout
 from livia.input.FrameInput import FrameInput
 from livia.input.SeekableFrameInput import SeekableFrameInput
 from livia.process.listener import build_listener
+from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
+from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeEvent import FrameProcessingStatusChangeEvent
 from livia_ui.gui.status.listener.FrameProcessingStatusChangeListener import FrameProcessingStatusChangeListener
 from livia_ui.gui.views.builders.BottomToolBarBuilder import BottomToolBarBuilder
@@ -51,6 +53,12 @@ class DefaultBottomToolBarBuilder(BottomToolBarBuilder):
                            frame_input_changed=self._on_frame_input_changed,
                            )
         )
+        self._livia_status.display_status.add_display_status_change_listener(
+            build_listener(DisplayStatusChangeListener,
+                           fullscreen_changed=self._on_fullscreen_changed,
+                           hide_controls_fullscreen_changed=self._on_hide_controls_fullscreen_changed
+                           )
+        )
 
     def _after_init(self):
         visible = isinstance(self._livia_status.video_stream_status.frame_input, SeekableFrameInput)
@@ -72,3 +80,14 @@ class DefaultBottomToolBarBuilder(BottomToolBarBuilder):
 
     def _on_frame_input_changed(self, event: FrameProcessingStatusChangeEvent[FrameInput]):
         self._change_video_bar_visibility_signal.emit(isinstance(event.new, SeekableFrameInput))
+
+    def _on_fullscreen_changed(self, event: DisplayStatusChangeEvent):
+        self._change_visibility(not (event.value and self._livia_status.display_status.hide_controls_fullscreen))
+
+    def _on_hide_controls_fullscreen_changed(self, event: DisplayStatusChangeEvent):
+        self._change_visibility(not (event.value and self._livia_status.display_status.fullscreen))
+
+    def _change_visibility(self, visible: bool):
+        self._parent_widget.setVisible(visible)
+        self._parent_widget.layout().update()
+

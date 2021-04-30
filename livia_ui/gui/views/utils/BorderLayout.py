@@ -44,6 +44,8 @@ from typing import List, Optional
 from PySide2.QtCore import QRect, QSize, Qt
 from PySide2.QtWidgets import (QLayout, QWidgetItem, QWidget)
 
+_EMPTY_RECT = QRect(0, 0, 0, 0)
+
 
 class ItemWrapper(object):
     def __init__(self, item: QWidget, position: int):
@@ -107,24 +109,30 @@ class BorderLayout(QLayout):
 
         for wrapper in self.list:
             item = wrapper.item
+            widget = item.widget()
             position = wrapper.position
 
             if position == self.North:
-                item.setGeometry(QRect(rect.x(), north_height,
+                if widget.isVisible():
+                    item.setGeometry(QRect(rect.x(), north_height,
                                        rect.width(), item.sizeHint().height()))
-
-                north_height += item.geometry().height() + self.spacing()
+                    north_height += item.geometry().height() + self.spacing()
+                else:
+                    item.setGeometry(_EMPTY_RECT)
 
             elif position == self.South:
-                item.setGeometry(QRect(item.geometry().x(),
-                                       item.geometry().y(), rect.width(),
-                                       item.sizeHint().height()))
+                if widget.isVisible():
+                    item.setGeometry(QRect(item.geometry().x(),
+                                           item.geometry().y(), rect.width(),
+                                           item.sizeHint().height()))
 
-                south_height += item.geometry().height() + self.spacing()
+                    south_height += item.geometry().height() + self.spacing()
 
-                item.setGeometry(QRect(rect.x(),
-                                       rect.y() + rect.height() - south_height + self.spacing(),
-                                       item.geometry().width(), item.geometry().height()))
+                    item.setGeometry(QRect(rect.x(),
+                                           rect.y() + rect.height() - south_height + self.spacing(),
+                                           item.geometry().width(), item.geometry().height()))
+                else:
+                    item.setGeometry(_EMPTY_RECT)
 
             elif position == self.Center:
                 center = wrapper
@@ -133,28 +141,38 @@ class BorderLayout(QLayout):
 
         for wrapper in self.list:
             item = wrapper.item
+            widget = item.widget()
             position = wrapper.position
 
             if position == self.West:
-                item.setGeometry(QRect(rect.x() + west_width,
-                                       north_height, item.sizeHint().width(), center_height))
+                if widget.isVisible():
+                    item.setGeometry(QRect(rect.x() + west_width,
+                                           north_height, item.sizeHint().width(), center_height))
 
-                west_width += item.geometry().width() + self.spacing()
+                    west_width += item.geometry().width() + self.spacing()
+                else:
+                    item.setGeometry(_EMPTY_RECT)
 
             elif position == self.East:
-                item.setGeometry(QRect(item.geometry().x(),
-                                       item.geometry().y(), item.sizeHint().width(),
-                                       center_height))
+                if widget.isVisible():
+                    item.setGeometry(QRect(item.geometry().x(),
+                                           item.geometry().y(), item.sizeHint().width(),
+                                           center_height))
 
-                east_width += item.geometry().width() + self.spacing()
+                    east_width += item.geometry().width() + self.spacing()
 
-                item.setGeometry(QRect(rect.x() + rect.width() - east_width + self.spacing(),
-                                       north_height, item.geometry().width(),
-                                       item.geometry().height()))
+                    item.setGeometry(QRect(rect.x() + rect.width() - east_width + self.spacing(),
+                                           north_height, item.geometry().width(),
+                                           item.geometry().height()))
+                else:
+                    item.setGeometry(_EMPTY_RECT)
 
         if center:
-            center.item.setGeometry(QRect(west_width, north_height,
-                                          rect.width() - east_width - west_width, center_height))
+            if center.item.widget().isVisible():
+                center.item.setGeometry(
+                    QRect(west_width, north_height, rect.width() - east_width - west_width, center_height))
+            else:
+                center.item.setGeometry(_EMPTY_RECT)
 
     def takeAt(self, index: int) -> Optional[QWidget]:
         if 0 <= index < len(self.list):

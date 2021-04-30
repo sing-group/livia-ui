@@ -75,7 +75,11 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
         )
 
         self._livia_status.display_status.add_display_status_change_listener(
-            build_listener(DisplayStatusChangeListener, status_message_changed=self._on_status_message_change)
+            build_listener(DisplayStatusChangeListener,
+                           status_message_changed=self._on_status_message_change,
+                           fullscreen_changed=self._on_fullscreen_changed,
+                           hide_controls_fullscreen_changed=self._on_hide_controls_fullscreen_changed
+                           )
         )
 
     def _disconnect_signals(self):
@@ -172,6 +176,15 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
             self._time_recording.setTime(QTime(0, 0, 0))
             self.__start_recording()
             self._recording_timer.start()
+
+    def _on_fullscreen_changed(self, event: DisplayStatusChangeEvent):
+        self._change_visibility(not (event.value and self._livia_status.display_status.hide_controls_fullscreen))
+
+    def _on_hide_controls_fullscreen_changed(self, event: DisplayStatusChangeEvent):
+        self._change_visibility(not (event.value and self._livia_status.display_status.fullscreen))
+
+    def _change_visibility(self, visible: bool):
+        self._parent_widget.setVisible(visible)
 
     def __start_recording(self):
         x, y = self._livia_status.video_stream_status.frame_input.get_frame_size()

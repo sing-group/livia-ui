@@ -22,6 +22,8 @@ from livia.process.listener.IOChangeListener import IOChangeListener
 from livia.process.listener.ProcessChangeEvent import ProcessChangeEvent
 from livia.process.listener.ProcessChangeListener import ProcessChangeListener
 from livia_ui.gui import LIVIA_GUI_LOGGER
+from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
+from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
 from livia_ui.gui.views.builders.GuiBuilderFactory import GuiBuilderFactory
 from livia_ui.gui.views.builders.TopToolBarBuilder import TopToolBarBuilder
 from livia_ui.gui.views.utils.BorderLayout import BorderLayout
@@ -102,6 +104,13 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         frame_processor.add_frame_analyzer_change_listener(
             build_listener(FrameAnalyzerChangeListener,
                            analyzer_changed=self._on_analyzer_changed)
+        )
+
+        self._livia_status.display_status.add_display_status_change_listener(
+            build_listener(DisplayStatusChangeListener,
+                           fullscreen_changed=self._on_fullscreen_changed,
+                           hide_controls_fullscreen_changed=self._on_hide_controls_fullscreen_changed
+                           )
         )
 
     def _disconnect_signals(self):
@@ -290,6 +299,15 @@ class DefaultTopToolBarBuilder(TopToolBarBuilder):
         else:
             LIVIA_GUI_LOGGER.warning("Attempt to change threshold in an analyzer (%s) that is not a subclass of %s",
                                      analyzer.__class__.__name__, HasThreshold.__class__.__name__)
+
+    def _on_fullscreen_changed(self, event: DisplayStatusChangeEvent):
+        self._change_visibility(not (event.value and self._livia_status.display_status.hide_controls_fullscreen))
+
+    def _on_hide_controls_fullscreen_changed(self, event: DisplayStatusChangeEvent):
+        self._change_visibility(not (event.value and self._livia_status.display_status.fullscreen))
+
+    def _change_visibility(self, visible: bool):
+        self._parent_widget.setVisible(visible)
 
     def _update_fps(self):
         frames = len(self._last_frames_time)

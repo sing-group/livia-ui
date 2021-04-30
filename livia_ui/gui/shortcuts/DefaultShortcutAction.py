@@ -10,7 +10,8 @@ class DefaultShortcutAction(ShortcutAction):
     RELEASE_DEVICE = 3
     TOGGLE_PLAY = 1001
     TOGGLE_FULLSCREEN = 2001
-    TOGGLE_RESIZABLE = 2002
+    TOGGLE_HIDE_CONTROLS_FULLSCREEN = 2002
+    TOGGLE_RESIZABLE = 2003
     TOGGLE_VIDEO_ANALYSIS = 3001
     ANALYZE_IMAGE = 3002
     CONFIGURE_VIDEO_ANALYZER = 10001
@@ -37,6 +38,7 @@ DEFAULT_SHORTCUTS: Dict[ShortcutAction, str] = {
     DefaultShortcutAction.RELEASE_DEVICE: "Ctrl+R",
     DefaultShortcutAction.TOGGLE_PLAY: "P",
     DefaultShortcutAction.TOGGLE_FULLSCREEN: "F",
+    DefaultShortcutAction.TOGGLE_HIDE_CONTROLS_FULLSCREEN: "M",
     DefaultShortcutAction.TOGGLE_RESIZABLE: "R",
     DefaultShortcutAction.TOGGLE_VIDEO_ANALYSIS: "V",
     DefaultShortcutAction.ANALYZE_IMAGE: "I",
@@ -52,6 +54,7 @@ GROUPS: Dict[ShortcutAction, str] = {
     DefaultShortcutAction.RELEASE_DEVICE: "File",
     DefaultShortcutAction.TOGGLE_PLAY: "Video",
     DefaultShortcutAction.TOGGLE_FULLSCREEN: "View",
+    DefaultShortcutAction.TOGGLE_HIDE_CONTROLS_FULLSCREEN: "View",
     DefaultShortcutAction.TOGGLE_RESIZABLE: "View",
     DefaultShortcutAction.TOGGLE_VIDEO_ANALYSIS: "Analysis",
     DefaultShortcutAction.ANALYZE_IMAGE: "Analysis",

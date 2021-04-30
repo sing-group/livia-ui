@@ -10,11 +10,13 @@ class DisplayStatus:
                  window_size: Tuple[int, int] = (800, 600),
                  fullscreen: bool = False,
                  resizable: bool = True,
-                 status_message: str = ""):
+                 status_message: str = "",
+                 hide_controls_fullscreen: bool = False):
         self._window_size: Tuple[int, int] = window_size
         self._fullscreen: bool = fullscreen
         self._resizable: bool = resizable
         self._status_message: str = status_message
+        self._hide_controls_fullscreen: bool = hide_controls_fullscreen
 
         self._listeners: EventListeners[DisplayStatusChangeListener] =\
             EventListeners[DisplayStatusChangeListener]()
@@ -45,6 +47,21 @@ class DisplayStatus:
 
     def toggle_fullscreen(self):
         self.fullscreen = not self.fullscreen
+
+    @property
+    def hide_controls_fullscreen(self):
+        return self._hide_controls_fullscreen
+
+    @hide_controls_fullscreen.setter
+    def hide_controls_fullscreen(self, hide_controls_fullscreen: bool):
+        if self._hide_controls_fullscreen != hide_controls_fullscreen:
+            self._hide_controls_fullscreen = hide_controls_fullscreen
+
+            event = DisplayStatusChangeEvent(self, self._hide_controls_fullscreen)
+            self._listeners.notify(DisplayStatusChangeListener.hide_controls_fullscreen_changed, event)
+
+    def toggle_hide_controls_fullscreen(self):
+        self.hide_controls_fullscreen = not self.hide_controls_fullscreen
 
     @property
     def resizable(self) -> bool:

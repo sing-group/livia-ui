@@ -1,8 +1,9 @@
 from PySide2.QtCore import Signal, Slot, Qt
-from PySide2.QtGui import QResizeEvent
+from PySide2.QtGui import QResizeEvent, QKeyEvent, QKeySequence
 from PySide2.QtWidgets import QMainWindow
 
 from livia.process.listener import build_listener
+from livia_ui.gui.shortcuts.DefaultShortcutAction import DefaultShortcutAction
 from livia_ui.gui.status.LiviaStatus import LiviaStatus
 from livia_ui.gui.status.listener.DisplayStatusChangeEvent import DisplayStatusChangeEvent
 from livia_ui.gui.status.listener.DisplayStatusChangeListener import DisplayStatusChangeListener
@@ -54,3 +55,16 @@ class LiviaWindow(QMainWindow, UiLiviaWindow):
     def closeEvent(self, event) -> None:
         self.deleteLater()
         event.accept()
+
+    def keyPressEvent(self, a0: QKeyEvent) -> None:
+        k = a0.key()
+        m = int(a0.modifiers())
+        key_sequence = QKeySequence(m + k)
+
+        if self._livia_status.display_status.fullscreen:
+            if key_sequence == "Esc" or key_sequence == self._livia_status.shortcut_status.get_keys(
+                    DefaultShortcutAction.TOGGLE_FULLSCREEN)[0]:
+                self._livia_status.display_status.toggle_fullscreen()
+            if key_sequence == self._livia_status.shortcut_status.get_keys(
+                    DefaultShortcutAction.TOGGLE_HIDE_CONTROLS_FULLSCREEN)[0]:
+                self._livia_status.display_status.toggle_hide_controls_fullscreen()
