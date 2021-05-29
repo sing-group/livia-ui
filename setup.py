@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="livia-ui",
-    version="0.1.dev38",
+    version="0.1.dev39",
     author="Fernando Campos Tato, Miguel Reboiro-Jato, Daniel Glez-Peña, Florentino Fdez-Riverola, Rubén Domínguez Carbajales, Hugo López-Fdez, Alba Nogueira-Rodríguez",
     author_email="fctato@esei.uvigo.es, mrjato@uvigo.es, dgpena@uvigo.es, riverola@uvigo.es, RUBEN.DOMINGUEZ.CARBAJALES@sergas.es, hlfernandez@uvigo.es, alnogueira@uvigo.es",
     description="User interfaces for the LIVIA framework.",
@@ -16,7 +16,10 @@ setuptools.setup(
     include_package_data=True,
     install_requires=[
         "livia-core==0.1.dev48",
-        "PySide2==5.13.2"
+        "PySide2==5.15.2"
+    ],
+    dependency_links=[
+        "https://maven.sing-group.org/repository/python-snapshots/simple/livia-core/"
     ],
     classifiers=[
         "Programming Language :: Python :: 3.7",

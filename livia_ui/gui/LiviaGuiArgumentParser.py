@@ -1,4 +1,6 @@
 import os
+
+from PySide2 import QtGui
 from PySide2.QtWidgets import QApplication
 from argparse import ArgumentParser, FileType, Namespace
 
@@ -14,7 +16,7 @@ from livia_ui.gui.status.ShortcutStatus import ShortcutStatus
 
 
 class LiviaGuiArgumentParser(ArgumentParser):
-    def __init__(self, app_name: str= "LIVIA", *args, **kwargs):
+    def __init__(self, app_name: str = "LIVIA", *args, **kwargs):
         super(LiviaGuiArgumentParser, self).__init__(*args, **kwargs)
 
         self._app_name: str = app_name
@@ -69,7 +71,8 @@ class LiviaGuiArgumentParser(ArgumentParser):
 
         try:
             window_center = self._livia_window.rect().center()
-            screen_center = self._app.desktop().screen().rect().center()
+            desktop = QApplication.desktop()
+            screen_center = desktop.screen().rect().center()
             self._livia_window.move(screen_center - window_center)  # Centers window
         except RuntimeError:
             LIVIA_GUI_LOGGER.exception("Window could not be centered in the screen")
