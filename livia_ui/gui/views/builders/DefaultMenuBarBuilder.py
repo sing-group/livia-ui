@@ -148,6 +148,11 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
                            )
         )
 
+    def _after_init(self):
+        display_status = self._livia_status.display_status
+        if display_status.fullscreen and display_status.hide_controls_fullscreen:
+            self._change_visibility(False)
+
     def _disconnect_signals(self):
         self._check_play_action_signal.disconnect(self._on_check_play_action_signal)
         self._check_fullscreen_action_signal.disconnect(self._on_check_play_action_signal)

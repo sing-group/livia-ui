@@ -25,6 +25,9 @@ class LiviaWindow(QMainWindow, UiLiviaWindow):
         self.resize(*size)
         self.setMinimumSize(*size)
 
+        if livia_status.display_status.fullscreen:
+            self.showFullScreen()
+
         self._change_to_fullscreen_signal.connect(self._on_change_to_fullscreen_signal)
 
         self._livia_status.display_status.add_display_status_change_listener(

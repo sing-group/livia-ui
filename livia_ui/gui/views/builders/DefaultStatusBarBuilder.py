@@ -82,6 +82,11 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
                            )
         )
 
+    def _after_init(self):
+        display_status = self._livia_status.display_status
+        if display_status.fullscreen and display_status.hide_controls_fullscreen:
+            self._change_visibility(False)
+
     def _disconnect_signals(self):
         self._update_status_signal.disconnect(self._on_update_status_signal)
 

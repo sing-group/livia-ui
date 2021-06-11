@@ -64,6 +64,10 @@ class DefaultBottomToolBarBuilder(BottomToolBarBuilder):
         visible = isinstance(self._livia_status.video_stream_status.frame_input, SeekableFrameInput)
         self._change_video_bar_visibility_signal.emit(visible)
 
+        display_status = self._livia_status.display_status
+        if display_status.fullscreen and display_status.hide_controls_fullscreen:
+            self._change_visibility(False)
+
     def _disconnect_signals(self):
         self._change_video_bar_visibility_signal.disconnect(self._on_change_video_bar_visibility_signal)
 
