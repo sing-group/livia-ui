@@ -38,19 +38,12 @@
 ##
 #############################################################################
 ## This file has been modified for this project
+from typing import Optional, Dict
 
-from typing import List, Optional
-
-from PySide2.QtCore import QRect, QSize, Qt
+from PySide2.QtCore import QRect, QSize, Qt, QObject, QEvent
 from PySide2.QtWidgets import (QLayout, QWidgetItem, QWidget)
 
 _EMPTY_RECT = QRect(0, 0, 0, 0)
-
-
-class ItemWrapper(object):
-    def __init__(self, item: QWidget, position: int):
-        self.item: QWidget = item
-        self.position: int = position
 
 
 class BorderLayout(QLayout):
@@ -64,14 +57,14 @@ class BorderLayout(QLayout):
             self.setContentsMargins(margin, margin, margin, margin)
 
         self.setSpacing(spacing)
-        self.list: List[ItemWrapper] = []
+        self.__items: Dict[int, QWidgetItem] = {}
 
     def __del__(self):
         layout_item = self.takeAt(0)
         while layout_item is not None:
             layout_item = self.takeAt(0)
 
-    def addItem(self, item: QWidget):
+    def addItem(self, item: QWidgetItem):
         self.__add(item, self.West)
 
     def addWidget(self, widget: QWidget, position):
@@ -84,11 +77,12 @@ class BorderLayout(QLayout):
         return False
 
     def count(self) -> int:
-        return len(self.list)
+        return len(self.__items)
 
     def itemAt(self, index) -> Optional[QWidget]:
-        if index < len(self.list):
-            return self.list[index].item
+        if index < len(self.__items):
+            key = list(self.__items.keys())[index]
+            return self.__items[key]
 
         return None
 
@@ -98,102 +92,130 @@ class BorderLayout(QLayout):
     def sizeHint(self) -> QSize:
         return self.__calculate_size(self.SizeHint)
 
-    def setGeometry(self, rect: QRect):
-        center = None
-        east_width = 0
-        west_width = 0
-        north_height = 0
-        south_height = 0
-
-        super(BorderLayout, self).setGeometry(rect)
-
-        for wrapper in self.list:
-            item = wrapper.item
+    def _place_north(self, rect: QRect) -> int:
+        if self.North not in self.__items:
+            return 0
+        else:
+            item = self.__items[self.North]
             widget = item.widget()
-            position = wrapper.position
 
-            if position == self.North:
-                if widget.isVisible():
-                    item.setGeometry(QRect(rect.x(), north_height,
+            if widget.isVisible():
+                item.setGeometry(QRect(rect.x(), 0, rect.width(), item.sizeHint().height()))
+                return item.geometry().height() + self.spacing()
+            else:
+                item.setGeometry(_EMPTY_RECT)
+                return 0
+
+    def _place_south(self, rect: QRect) -> int:
+        if self.South not in self.__items:
+            return 0
+        else:
+            item = self.__items[self.South]
+            widget = item.widget()
+
+            if widget.isVisible():
+                item.setGeometry(QRect(item.geometry().x(), item.geometry().y(),
                                        rect.width(), item.sizeHint().height()))
-                    north_height += item.geometry().height() + self.spacing()
-                else:
-                    item.setGeometry(_EMPTY_RECT)
 
-            elif position == self.South:
-                if widget.isVisible():
-                    item.setGeometry(QRect(item.geometry().x(),
-                                           item.geometry().y(), rect.width(),
-                                           item.sizeHint().height()))
+                height = item.geometry().height() + self.spacing()
 
-                    south_height += item.geometry().height() + self.spacing()
+                item.setGeometry(QRect(rect.x(), rect.y() + rect.height() - height + self.spacing(),
+                                       item.geometry().width(), item.geometry().height()))
+                return height
+            else:
+                item.setGeometry(_EMPTY_RECT)
+                return 0
 
-                    item.setGeometry(QRect(rect.x(),
-                                           rect.y() + rect.height() - south_height + self.spacing(),
-                                           item.geometry().width(), item.geometry().height()))
-                else:
-                    item.setGeometry(_EMPTY_RECT)
-
-            elif position == self.Center:
-                center = wrapper
-
-        center_height = rect.height() - north_height - south_height
-
-        for wrapper in self.list:
-            item = wrapper.item
+    def _place_west(self, rect: QRect, north_height: int, center_height: int) -> int:
+        if self.West not in self.__items:
+            return 0
+        else:
+            item = self.__items[self.West]
             widget = item.widget()
-            position = wrapper.position
 
-            if position == self.West:
-                if widget.isVisible():
-                    item.setGeometry(QRect(rect.x() + west_width,
-                                           north_height, item.sizeHint().width(), center_height))
+            if widget.isVisible():
+                item.setGeometry(QRect(rect.x(), north_height, item.sizeHint().width(), center_height))
 
-                    west_width += item.geometry().width() + self.spacing()
-                else:
-                    item.setGeometry(_EMPTY_RECT)
+                return item.geometry().width() + self.spacing()
+            else:
+                item.setGeometry(_EMPTY_RECT)
+                return 0
 
-            elif position == self.East:
-                if widget.isVisible():
-                    item.setGeometry(QRect(item.geometry().x(),
-                                           item.geometry().y(), item.sizeHint().width(),
-                                           center_height))
+    def _place_east(self, rect: QRect, north_height: int, center_height: int) -> int:
+        if self.East not in self.__items:
+            return 0
+        else:
+            item = self.__items[self.East]
+            widget = item.widget()
 
-                    east_width += item.geometry().width() + self.spacing()
+            if widget.isVisible():
+                item.setGeometry(
+                    QRect(item.geometry().x(), item.geometry().y(), item.sizeHint().width(), center_height))
 
-                    item.setGeometry(QRect(rect.x() + rect.width() - east_width + self.spacing(),
-                                           north_height, item.geometry().width(),
-                                           item.geometry().height()))
-                else:
-                    item.setGeometry(_EMPTY_RECT)
+                east_width = item.geometry().width() + self.spacing()
 
-        if center:
-            if center.item.widget().isVisible():
-                center.item.setGeometry(
+                item.setGeometry(
+                    QRect(rect.x() + rect.width() - east_width + self.spacing(), north_height, item.geometry().width(),
+                          item.geometry().height()))
+
+                return east_width
+            else:
+                item.setGeometry(_EMPTY_RECT)
+                return 0
+
+    def _place_center(self, rect: QRect, north_height: int, center_height: int, west_width: int,
+                      east_width: int) -> int:
+        if self.Center not in self.__items:
+            return 0
+        else:
+            item = self.__items[self.Center]
+            widget = item.widget()
+            if widget.isVisible():
+                item.setGeometry(
                     QRect(west_width, north_height, rect.width() - east_width - west_width, center_height))
             else:
-                center.item.setGeometry(_EMPTY_RECT)
+                item.setGeometry(_EMPTY_RECT)
+
+    def setGeometry(self, rect: QRect):
+        super(BorderLayout, self).setGeometry(rect)
+
+        north_height = self._place_north(rect)
+        south_height = self._place_south(rect)
+        center_height = rect.height() - north_height - south_height
+        west_width = self._place_west(rect, north_height, center_height)
+        east_width = self._place_east(rect, north_height, center_height)
+        self._place_center(rect, north_height, center_height, west_width, east_width)
 
     def takeAt(self, index: int) -> Optional[QWidget]:
-        if 0 <= index < len(self.list):
-            item_wrapper = self.list.pop(index)
-            return item_wrapper.item
+        if 0 <= index < len(self.__items):
+            key = list(self.__items.keys())[index]
+            item = self.__items[key]
+            del self.__items[key]
+            item.widget().removeEventFilter(self)
+
+            return item
 
         return None
 
-    def __add(self, item: QWidget, position: int):
-        self.list.append(ItemWrapper(item, position))
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if event.type() == QEvent.Hide or event.type() == QEvent.Show:
+            self.update()
+            return True
+        else:
+            return super().eventFilter(watched, event)
+
+    def __add(self, item: QWidgetItem, position: int):
+        item.widget().installEventFilter(self)
+        self.__items[position] = item
 
     def __calculate_size(self, size_type: int) -> QSize:
         total_size = QSize()
 
-        for wrapper in self.list:
-            position = wrapper.position
-
+        for position, item in self.__items.items():
             if size_type == self.MinimumSize:
-                item_size = wrapper.item.minimumSize()
+                item_size = item.minimumSize()
             else:  # sizeType == self.SizeHint
-                item_size = wrapper.item.sizeHint()
+                item_size = item.sizeHint()
 
             if position in (self.North, self.South, self.Center):
                 total_size.setHeight(total_size.height() + item_size.height())
