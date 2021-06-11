@@ -444,7 +444,7 @@ class DefaultMenuBarBuilder(MenuBarBuilder):
             self._check_play_action_signal.emit(True)
 
     def _on_live_frame_analyzer_activation_changed(self, event: FrameProcessingStatusChangeEvent[bool]):
-        if not self._toggle_video_analyzer_action.isChecked() != event.new:
+        if self._toggle_video_analyzer_action.isChecked() != event.new:
             self._toggle_video_analyzer_action_signal.emit(event.new)
 
     def _on_configure_shortcuts(self):
