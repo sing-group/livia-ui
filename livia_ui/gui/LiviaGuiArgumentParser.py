@@ -1,8 +1,7 @@
 import os
-
-from PySide2 import QtGui
-from PySide2.QtWidgets import QApplication
 from argparse import ArgumentParser, FileType, Namespace
+
+from PySide2.QtWidgets import QApplication
 
 from livia.input.FileFrameInput import FileFrameInput
 from livia.input.NoFrameInput import NoFrameInput
@@ -28,14 +27,14 @@ class LiviaGuiArgumentParser(ArgumentParser):
         self.add_argument("--open", dest="open", type=FileType("r"), help="Opens a file when application is started")
         config_group = self.add_argument_group("Configuration")
         config_group.add_argument("--config-file", dest="config_file", type=FileType("r"),
-                                      default=os.path.abspath(os.path.join(os.getcwd(), "configuration.xml")),
-                                      help="Configuration file. By default, the application will load a "
-                                           "'configuration.xml' file in the working directory")
+                                  default=os.path.abspath(os.path.join(os.getcwd(), "configuration.xml")),
+                                  help="Configuration file. By default, the application will load a "
+                                       "'configuration.xml' file in the working directory")
         config_group.add_argument("--no-config", dest="no_config", action="store_true",
-                                      help="Application starts with default configuration.")
+                                  help="Application starts with default configuration.")
         config_group.add_argument("--no-auto-update-config", dest="auto_update_config", action="store_false",
-                                      help="Automatically updates the configuration file with the changes done in the "
-                                           "application. Default value: True")
+                                  help="Automatically updates the configuration file with the changes done in the "
+                                       "application. Default value: True")
 
     def _build_status(self, args: Namespace) -> LiviaStatus:
         if args.open:
@@ -56,6 +55,10 @@ class LiviaGuiArgumentParser(ArgumentParser):
 
         return livia_window
 
+    def _build_configuration(self, args: Namespace) -> ConfigurationStorage:
+        return ConfigurationStorage(self._livia_window.status, args.config_file, not args.no_config,
+                                    args.auto_update_config)
+
     def parse_and_execute(self):
         args = self.parse_args()
 
@@ -66,8 +69,7 @@ class LiviaGuiArgumentParser(ArgumentParser):
         self._livia_window = self._build_window(livia_status)
         self._livia_window.adjustSize()
 
-        self._configuration_storage = ConfigurationStorage(livia_status, args.config_file, not args.no_config,
-                                                           args.auto_update_config)
+        self._configuration_storage = self._build_configuration(args)
 
         try:
             window_center = self._livia_window.rect().center()
