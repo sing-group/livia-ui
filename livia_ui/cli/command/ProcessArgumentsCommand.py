@@ -12,6 +12,7 @@ from livia.process.listener.ProcessChangeEvent import ProcessChangeEvent
 from livia.process.listener.ProcessChangeListener import ProcessChangeListener
 from livia_ui.cli import LIVIA_CLI_LOGGER
 from livia_ui.cli.command.ArgumentsCommand import ArgumentsCommand
+from livia_ui.cli.command.converters.ValueConverterFactory import ValueConverterFactory
 
 
 class ProcessorListener(ProcessChangeListener):
@@ -28,6 +29,8 @@ class ProcessorListener(ProcessChangeListener):
 class ProcessArgumentsCommand(ArgumentsCommand):
     def __init__(self):
         super().__init__("process", "Video processing")
+
+        self.__value_converter_factory: ValueConverterFactory = ValueConverterFactory()
 
     def _build_subparser(self, subparser):
         subparser.add_argument("-in", "--input", dest="input", type=FileType("r"), required=True,
@@ -52,7 +55,7 @@ class ProcessArgumentsCommand(ArgumentsCommand):
         analyzer = self._build_analyzer(args)
 
         LIVIA_CLI_LOGGER.info(f"Processing {args.input.name} to {args.output.name}")
-        input = FileFrameInput(args.input.name, delay=0)
+        input = FileFrameInput(args.input.name, 0)
         output = FileFrameOutput(args.output.name, input.get_fps(), *input.get_frame_size())
 
         processor = AnalyzerFrameProcessor(input, output, analyzer, daemon=False)
@@ -71,7 +74,11 @@ class ProcessArgumentsCommand(ArgumentsCommand):
                 for prop_id, value in analyzer_args.__dict__.items():
                     prop = analyzer_metadata.get_property_by_id(prop_id)
                     if prop is not None:
-                        setattr(analyzer, prop.name, value)
+                        try:
+                            converter = self.__value_converter_factory.get_converter(prop.prop_type)
+                            prop.set_value(analyzer, converter.convert(value))
+                        except ValueError:
+                            prop.set_value(analyzer, value)
                 analyzers.append((order, analyzer))
 
         if analyzers:
@@ -88,7 +95,7 @@ class ProcessArgumentsCommand(ArgumentsCommand):
         return analyzer
 
     @staticmethod
-    def _extract_args_for_analyzer(args: Namespace, analyzer: FrameAnalyzerMetadata) ->\
+    def _extract_args_for_analyzer(args: Namespace, analyzer: FrameAnalyzerMetadata) -> \
             Tuple[Optional[Namespace], Optional[int]]:
         def arg(arg_id):
             return f"analyzer_{analyzer.id}_{arg_id}".replace("-", "_")

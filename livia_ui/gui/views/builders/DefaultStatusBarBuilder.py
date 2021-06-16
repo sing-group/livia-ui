@@ -167,7 +167,6 @@ class DefaultStatusBarBuilder(StatusBarBuilder):
 
         if dialog.exec_() == dialog.Accepted:
             self._recording_file = dialog.selectedFiles()[0]
-            # print(self._recording_file)
             self._current_path = os.path.dirname(os.path.realpath(self._recording_file))
             self._record_button.setEnabled(True)
 
