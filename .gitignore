@@ -16,5 +16,3 @@ check.sh
 bak
 *.bak
 
-# Application
-configuration.xml

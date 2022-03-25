@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<configuration>
+    <shortcuts/>
+    <analyzers>
+        <live-analyzer active="None">
+            <configurations/>
+        </live-analyzer>
+        <static-analyzer active="None">
+            <configurations/>
+        </static-analyzer>
+    </analyzers>
+</configuration>
