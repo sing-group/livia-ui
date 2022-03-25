@@ -27,8 +27,8 @@ class ConfigureVideoAnalyzerDialog(QDialog):
 
         self._configurations: List[FrameAnalyzerConfiguration] = None
         self._configurations_received: List[FrameAnalyzerConfiguration] = None
-        self._active_configuration_index: int = None
-        self._selected_configuration_index: int = None
+        self._active_configuration_index: Optional[int] = None
+        self._selected_configuration_index: Optional[int] = None
         self._update_analyzer_configurations()
 
         self._updating_configurations_combo_box: bool = False
@@ -266,6 +266,7 @@ class ConfigureVideoAnalyzerDialog(QDialog):
         for row_num in range(0, self._form_layout.rowCount()):
             self._form_layout.removeRow(0)
 
+        current_analyzer: Optional[FrameAnalyzerConfiguration] = None
         if self._active_configuration_index in range(0, len(self._configurations)):
             current_analyzer = self._configurations[self._active_configuration_index]
 
@@ -276,7 +277,8 @@ class ConfigureVideoAnalyzerDialog(QDialog):
             row_layout = QHBoxLayout()
             row_layout.addStretch()
             row_layout.addWidget(self._configuration_name_edit, 0, Qt.AlignRight)
-            self._form_layout.addRow("Configuration Name:", row_layout)
+            label = QCoreApplication.translate(self.__class__.__name__, "Configuration name:")
+            self._form_layout.addRow(label, row_layout)
 
             metadata = FrameAnalyzerManager.get_metadata_by_id(selected_analyzer.analyzer_id)
             self._group_box_layout.setTitle(metadata.name)
@@ -284,10 +286,10 @@ class ConfigureVideoAnalyzerDialog(QDialog):
             for prop in metadata.properties:
                 property_data = None
                 property_value = None
-                for prop_readed in selected_analyzer.parameters:
-                    if prop.id == prop_readed[0].id:
-                        property_data = prop_readed[0]
-                        property_value = prop_readed[1]
+                for prop_read in selected_analyzer.parameters:
+                    if prop.id == prop_read[0].id:
+                        property_data = prop_read[0]
+                        property_value = prop_read[1]
                         break
 
                 if property_data is None:
@@ -322,4 +324,5 @@ class ConfigureVideoAnalyzerDialog(QDialog):
             self._apply_button.setEnabled(not self._is_current_analyzer_selected())
 
     def _is_current_analyzer_selected(self) -> bool:
-        return self._selected_configuration_index == self._active_configuration_index
+        return self._selected_configuration_index is not None and \
+               self._selected_configuration_index == self._active_configuration_index
