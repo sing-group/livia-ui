@@ -5,7 +5,8 @@ from livia.input.NoFrameInput import NoFrameInput
 from livia.output.FrameOutput import FrameOutput
 from livia.output.NoFrameOutput import NoFrameOutput
 from livia.process.analyzer.AnalyzerFrameProcessor import AnalyzerFrameProcessor
-from livia.process.analyzer.AsyncAnalyzerFrameProcessor import AsyncAnalyzerFrameProcessor
+from livia.process.analyzer.AsyncAnalyzerFrameProcessor import AsyncAnalyzerFrameProcessor, \
+    DEFAULT_MODIFICATION_PERSISTENCE, DEFAULT_NUM_THREADS
 from livia.process.analyzer.FrameAnalyzer import FrameAnalyzer
 from livia.process.analyzer.FrameAnalyzerManager import FrameAnalyzerManager
 from livia.process.analyzer.FrameAnalyzerMetadata import FrameAnalyzerMetadata
@@ -30,7 +31,9 @@ class FrameProcessingStatus:
                  frame_output: FrameOutput = NoFrameOutput(),
                  live_frame_analyzer: FrameAnalyzer = NoChangeFrameAnalyzer(),
                  static_frame_analyzer: FrameAnalyzer = NoChangeFrameAnalyzer(),
-                 activate_live_analysis: bool = False):
+                 activate_live_analysis: bool = False,
+                 modification_persistence: int = DEFAULT_MODIFICATION_PERSISTENCE,
+                 analyzer_threads: int = DEFAULT_NUM_THREADS):
         self._static_frame_analyzer: FrameAnalyzer = static_frame_analyzer
         self._live_frame_analyzer: FrameAnalyzer = live_frame_analyzer
 
@@ -39,7 +42,9 @@ class FrameProcessingStatus:
 
         self._frame_processor: AnalyzerFrameProcessor = self._build_frame_processor(
             frame_input, frame_output,
-            live_frame_analyzer if activate_live_analysis else FrameProcessingStatus.NO_CHANGE_LIVE_ANALYZER)
+            live_frame_analyzer if activate_live_analysis else FrameProcessingStatus.NO_CHANGE_LIVE_ANALYZER,
+            modification_persistence, analyzer_threads
+        )
 
         self._active_live_analyzer_configuration_index = None
         self._active_static_analyzer_configuration_index = None
@@ -47,8 +52,11 @@ class FrameProcessingStatus:
         self._static_analyzer_configurations: List[FrameAnalyzerConfiguration] = []
 
     def _build_frame_processor(self, frame_input: FrameInput, frame_output: FrameOutput,
-                               live_frame_analyzer: FrameAnalyzer) -> AnalyzerFrameProcessor:
-        analyzer = AsyncAnalyzerFrameProcessor(frame_input, frame_output, live_frame_analyzer)
+                               live_frame_analyzer: FrameAnalyzer,
+                               modification_persistence: int,
+                               analyzer_threads: int) -> AnalyzerFrameProcessor:
+        analyzer = AsyncAnalyzerFrameProcessor(frame_input, frame_output, live_frame_analyzer,
+                                               modification_persistence, analyzer_threads)
 
         analyzer.add_io_change_listener(
             build_listener(IOChangeListener,

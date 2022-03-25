@@ -1,10 +1,11 @@
 import os
-from argparse import ArgumentParser, FileType, Namespace
+from argparse import ArgumentParser, FileType, Namespace, ArgumentTypeError
 
 from PySide2.QtWidgets import QApplication
 
 from livia.input.FileFrameInput import FileFrameInput
 from livia.input.NoFrameInput import NoFrameInput
+from livia.process.analyzer.AsyncAnalyzerFrameProcessor import DEFAULT_MODIFICATION_PERSISTENCE, DEFAULT_NUM_THREADS
 from livia_ui.gui import LIVIA_GUI_LOGGER
 from livia_ui.gui.LiviaWindow import LiviaWindow
 from livia_ui.gui.configuration.ConfigurationStorage import ConfigurationStorage
@@ -12,6 +13,14 @@ from livia_ui.gui.status.DisplayStatus import DisplayStatus
 from livia_ui.gui.status.FrameProcessingStatus import FrameProcessingStatus
 from livia_ui.gui.status.LiviaStatus import LiviaStatus
 from livia_ui.gui.status.ShortcutStatus import ShortcutStatus
+
+
+def at_least_one(value: str) -> int:
+    value_as_int = int(value)
+    if value_as_int < 1:
+        raise ArgumentTypeError("the minimum accepted value is 1")
+
+    return value_as_int
 
 
 class LiviaGuiArgumentParser(ArgumentParser):
@@ -24,7 +33,19 @@ class LiviaGuiArgumentParser(ArgumentParser):
         self._livia_window: LiviaWindow = None
         self._configuration_storage: ConfigurationStorage = None
 
+        default_modification_persistence = DEFAULT_MODIFICATION_PERSISTENCE
+        default_frame_processor_threads = DEFAULT_NUM_THREADS
+
         self.add_argument("--open", dest="open", type=FileType("r"), help="Opens a file when application is started")
+        self.add_argument("--modification-persistence", dest="modification_persistence", type=int,
+                          default=default_modification_persistence,
+                          help="Sets the number of frames that a frame modification will persist "
+                               f"if no new modification is created (default: {default_modification_persistence})")
+        self.add_argument("--frame-processor-threads", dest="frame_processor_threads", type=at_least_one,
+                          default=default_frame_processor_threads,
+                          help="Number of thread used by the asynchronous frame processor "
+                               f"(default: {default_frame_processor_threads})")
+
         config_group = self.add_argument_group("Configuration")
         config_group.add_argument("--config-file", dest="config_file", type=FileType("r"),
                                   default=os.path.abspath(os.path.join(os.getcwd(), "configuration.xml")),
@@ -45,7 +66,8 @@ class LiviaGuiArgumentParser(ArgumentParser):
             frame_size = (800, 600)
 
         window_size = (frame_size[0] + 50, frame_size[1] + 100)
-        return LiviaStatus(FrameProcessingStatus(input_frame),
+        return LiviaStatus(FrameProcessingStatus(input_frame, modification_persistence=args.modification_persistence,
+                                                 analyzer_threads=args.frame_processor_threads),
                            DisplayStatus(window_size, status_message=f"Welcome to {self._app_name}"),
                            ShortcutStatus())
 
