@@ -1,5 +1,7 @@
+import logging
 from argparse import FileType, Namespace
 from functools import reduce
+from io import TextIOBase
 from typing import Optional, List, Tuple
 
 from livia.input.FileFrameInput import FileFrameInput
@@ -47,6 +49,11 @@ class ProcessArgumentsCommand(ArgumentsCommand):
             group.add_argument(short_prefix + "order", long_prefix + "order", type=int, required=False,
                                help="Priority order of the analyzer")
 
+            group.add_argument(short_prefix + "log-file", long_prefix + "log-file",
+                               type=FileType("a", encoding="UTF-8"), required=False,
+                               help="File to log analyzer messages to. \
+                               If not specified, logging for this analyzer will be disabled")
+
             for prop in analyzer.properties:
                 group.add_argument(short_prefix + prop.id, long_prefix + prop.id, help=prop.prop.__doc__,
                                    required=False)
@@ -67,10 +74,11 @@ class ProcessArgumentsCommand(ArgumentsCommand):
         analyzers: List[(int, FrameAnalyzerMetadata)] = []
 
         for analyzer_metadata in FrameAnalyzerManager.list_analyzers():
-            analyzer_args, order = ProcessArgumentsCommand._extract_args_for_analyzer(args, analyzer_metadata)
+            analyzer_args, order, log_file = ProcessArgumentsCommand._extract_args_for_analyzer(args, analyzer_metadata)
 
             if analyzer_args is not None:
                 analyzer = analyzer_metadata.analyzer_class()
+
                 for prop_id, value in analyzer_args.__dict__.items():
                     prop = analyzer_metadata.get_property_by_id(prop_id)
                     if prop is not None:
@@ -79,6 +87,13 @@ class ProcessArgumentsCommand(ArgumentsCommand):
                             prop.set_value(analyzer, converter.convert(value))
                         except ValueError:
                             prop.set_value(analyzer, value)
+
+                if log_file is not None:
+                    logger = FrameAnalyzerManager.get_logger_for(analyzer)
+                    # TODO do not hardcode logging level and format. Read from arguments
+                    logger.setLevel(logging.INFO)
+                    logger.addHandler(logging.StreamHandler(log_file))
+
                 analyzers.append((order, analyzer))
 
         if analyzers:
@@ -96,13 +111,15 @@ class ProcessArgumentsCommand(ArgumentsCommand):
 
     @staticmethod
     def _extract_args_for_analyzer(args: Namespace, analyzer: FrameAnalyzerMetadata) -> \
-            Tuple[Optional[Namespace], Optional[int]]:
+            Tuple[Optional[Namespace], Optional[int], Optional[TextIOBase]]:
         def arg(arg_id):
             return f"analyzer_{analyzer.id}_{arg_id}".replace("-", "_")
 
         order = getattr(args, arg("order"))
+        log_file = getattr(args, arg("log_file"))
+
         if order is None:
-            return None, None
+            return None, None, None
         else:
             analyzer_args = Namespace()
 
@@ -111,4 +128,4 @@ class ProcessArgumentsCommand(ArgumentsCommand):
                 if arg_value is not None:
                     setattr(analyzer_args, prop.id, arg_value)
 
-            return analyzer_args, order
+            return analyzer_args, order, log_file
