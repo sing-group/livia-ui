@@ -9,7 +9,7 @@ idna==3.3
 importlib-metadata==4.11.3
 jeepney==0.8.0
 keyring==23.5.0
-livia-core==0.1.dev66
+livia-core==0.1.dev71
 mypy==0.931
 mypy-extensions==0.4.3
 numpy==1.21.5
