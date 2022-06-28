@@ -56,7 +56,8 @@ class FrameProcessingStatus:
                                modification_persistence: int,
                                analyzer_threads: int) -> AnalyzerFrameProcessor:
         analyzer = AsyncAnalyzerFrameProcessor(frame_input, frame_output, live_frame_analyzer,
-                                               modification_persistence, analyzer_threads)
+                                               modification_persistence=modification_persistence,
+                                               num_threads=analyzer_threads)
 
         analyzer.add_io_change_listener(
             build_listener(IOChangeListener,
